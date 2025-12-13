@@ -1,0 +1,171 @@
+.dispute-center {
+  padding: 40px 20px;
+  min-height: calc(100vh - 80px);
+}
+
+.dispute-actions {
+  margin-bottom: 30px;
+}
+
+.dispute-form {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  max-width: 600px;
+}
+
+.disputes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dispute-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dispute-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dispute-header h3 {
+  font-size: 20px;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.dispute-meta {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-open {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-review {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+.status-resolved {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.dispute-content {
+  margin-bottom: 20px;
+}
+
+.dispute-message {
+  margin-bottom: 15px;
+  padding: 15px;
+  background-color: var(--secondary-color);
+  border-radius: 4px;
+}
+
+.dispute-message strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.dispute-message p {
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.vendor-reply {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
+}
+
+.admin-notes {
+  background-color: #fff9c4;
+  border-left: 4px solid #fbc02d;
+}
+
+.dispute-actions-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.reply-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reply-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.admin-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.admin-notes-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.dispute-date {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+.no-disputes {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .dispute-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+

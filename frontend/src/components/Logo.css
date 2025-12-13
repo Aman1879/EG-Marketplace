@@ -1,0 +1,70 @@
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logo-icon svg {
+  display: block;
+}
+
+.logo-small .logo-icon svg {
+  width: 40px;
+  height: 46px;
+}
+
+.logo-medium .logo-icon svg {
+  width: 50px;
+  height: 58px;
+}
+
+.logo-large .logo-icon svg {
+  width: 60px;
+  height: 70px;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.logo-text-line1,
+.logo-text-line2 {
+  font-weight: bold;
+  font-size: 18px;
+  color: #4A5568;
+  font-family: Arial, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.logo-medium .logo-text-line1,
+.logo-medium .logo-text-line2 {
+  font-size: 20px;
+}
+
+.logo-large .logo-text-line1,
+.logo-large .logo-text-line2 {
+  font-size: 24px;
+}
+
+.logo-small .logo-text-line1,
+.logo-small .logo-text-line2 {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .logo-text {
+    display: none;
+  }
+}
+

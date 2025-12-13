@@ -1,0 +1,22 @@
+.admin-footer {
+  margin-top: auto;
+  padding: 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.admin-footer-content {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  text-align: center;
+}
+
+.admin-footer-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
