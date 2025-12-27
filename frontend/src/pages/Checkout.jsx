@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import './Checkout.css';
 
 const Checkout = () => {
@@ -48,7 +49,7 @@ const Checkout = () => {
         shippingAddress
       };
 
-      const response = await axios.post('http://localhost:3000/api/orders', orderData);
+      const response = await axios.post(`${API_BASE_URL}/api/orders`, orderData);
       
       alert('Order placed successfully!');
       clearCart();

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import './ProductDetail.css';
 
 const ProductDetail = () => {
@@ -23,7 +24,7 @@ const ProductDetail = () => {
 
   const fetchProduct = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/products/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/api/products/${id}`);
       setProduct(response.data);
       setLoading(false);
     } catch (error) {
@@ -34,7 +35,7 @@ const ProductDetail = () => {
 
   const fetchRatings = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/ratings/product/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/api/ratings/product/${id}`);
       setRatings(response.data);
     } catch (error) {
       console.error('Error fetching ratings:', error);
@@ -63,7 +64,7 @@ const ProductDetail = () => {
 
     try {
       // Find user's order for this product
-      const ordersResponse = await axios.get('http://localhost:3000/api/orders/buyer/my-orders');
+      const ordersResponse = await axios.get(`${API_BASE_URL}/api/orders/buyer/my-orders`);
       const orders = ordersResponse.data;
       const order = orders.find(o =>
         o.products.some(p => p.productId._id === id) && o.status === 'Delivered'
@@ -74,7 +75,7 @@ const ProductDetail = () => {
         return;
       }
 
-      await axios.post('http://localhost:3000/api/ratings', {
+      await axios.post(`${API_BASE_URL}/api/ratings`, {
         productId: id,
         orderId: order._id,
         rating,

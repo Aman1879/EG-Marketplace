@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Online Marketplace Platform
 
 A full-stack multi-vendor marketplace platform inspired by Etsy, built with Node.js, Express, MongoDB, and React.
@@ -324,4 +325,6 @@ Created as a college project demonstrating full-stack development skills.
 - Security enhancements
 - Image upload functionality
 - Payment gateway integration
+=======
+>>>>>>> d50fe148bf674812a0ddfde303b0616ce253edab
 

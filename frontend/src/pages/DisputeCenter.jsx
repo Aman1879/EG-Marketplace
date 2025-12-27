@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import './DisputeCenter.css';
 
 const DisputeCenter = () => {
@@ -29,11 +30,11 @@ const DisputeCenter = () => {
     try {
       let response;
       if (user?.role === 'buyer') {
-        response = await axios.get('http://localhost:3000/api/disputes/buyer/my-disputes');
+        response = await axios.get(`${API_BASE_URL}/api/disputes/buyer/my-disputes`);
       } else if (user?.role === 'vendor') {
-        response = await axios.get('http://localhost:3000/api/disputes/vendor/my-disputes');
+        response = await axios.get(`${API_BASE_URL}/api/disputes/vendor/my-disputes`);
       } else if (user?.role === 'admin') {
-        response = await axios.get('http://localhost:3000/api/disputes/all');
+        response = await axios.get(`${API_BASE_URL}/api/disputes/all`);
       }
       if (response) {
         setDisputes(response.data);
@@ -47,7 +48,7 @@ const DisputeCenter = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/orders/buyer/my-orders');
+      const response = await axios.get(`${API_BASE_URL}/api/orders/buyer/my-orders`);
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -66,7 +67,7 @@ const DisputeCenter = () => {
           .map(url => url.trim())
           .filter(Boolean)
       };
-      await axios.post('http://localhost:3000/api/disputes', payload);
+      await axios.post(`${API_BASE_URL}/api/disputes`, payload);
       alert('Dispute created successfully!');
       setShowForm(false);
       setFormData({ orderId: '', reason: 'not_received', description: '', images: '' });
@@ -78,7 +79,7 @@ const DisputeCenter = () => {
 
   const handleVendorReply = async (disputeId, reply) => {
     try {
-      await axios.put(`http://localhost:3000/api/disputes/${disputeId}/reply`, { reply });
+      await axios.put(`${API_BASE_URL}/api/disputes/${disputeId}/reply`, { reply });
       alert('Reply submitted successfully!');
       fetchDisputes();
     } catch (error) {
@@ -88,7 +89,7 @@ const DisputeCenter = () => {
 
   const handleAdminUpdate = async (disputeId, status, adminNotes) => {
     try {
-      await axios.put(`http://localhost:3000/api/disputes/${disputeId}/status`, {
+      await axios.put(`${API_BASE_URL}/api/disputes/${disputeId}/status`, {
         status,
         adminNotes
       });

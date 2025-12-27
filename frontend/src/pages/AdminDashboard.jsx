@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AdminFooter from '../components/AdminFooter';
+import { API_BASE_URL } from '../config/api';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -20,11 +21,11 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const [statsRes, commissionsRes, earningsRes, messagesRes, statsRes2] = await Promise.all([
-        axios.get('http://localhost:3000/api/admin/dashboard'),
-        axios.get('http://localhost:3000/api/admin/commissions'),
-        axios.get('http://localhost:3000/api/admin/vendor-earnings'),
-        axios.get('http://localhost:3000/api/contact/messages'),
-        axios.get('http://localhost:3000/api/contact/stats')
+        axios.get(`${API_BASE_URL}/api/admin/dashboard`),
+        axios.get(`${API_BASE_URL}/api/admin/commissions`),
+        axios.get(`${API_BASE_URL}/api/admin/vendor-earnings`),
+        axios.get(`${API_BASE_URL}/api/contact/messages`),
+        axios.get(`${API_BASE_URL}/api/contact/stats`)
       ]);
       setStats(statsRes.data);
       setCommissions(commissionsRes.data.commissions);
@@ -41,8 +42,8 @@ const AdminDashboard = () => {
   const fetchMessages = async (status = 'all') => {
     try {
       const url = status === 'all' 
-        ? 'http://localhost:3000/api/contact/messages'
-        : `http://localhost:3000/api/contact/messages?status=${status}`;
+        ? `${API_BASE_URL}/api/contact/messages`
+        : `${API_BASE_URL}/api/contact/messages?status=${status}`;
       const res = await axios.get(url);
       setContactMessages(res.data.messages || []);
     } catch (error) {
@@ -52,12 +53,12 @@ const AdminDashboard = () => {
 
   const updateMessageStatus = async (messageId, newStatus) => {
     try {
-      await axios.put(`http://localhost:3000/api/contact/messages/${messageId}/status`, {
+      await axios.put(`${API_BASE_URL}/api/contact/messages/${messageId}/status`, {
         status: newStatus
       });
       fetchMessages(selectedStatus);
       if (messageStats) {
-        const statsRes = await axios.get('http://localhost:3000/api/contact/stats');
+        const statsRes = await axios.get('http://localhost:/api/contact/stats');
         setMessageStats(statsRes.data);
       }
       if (selectedMessage && selectedMessage._id === messageId) {
@@ -72,7 +73,7 @@ const AdminDashboard = () => {
   const deleteMessage = async (messageId) => {
     if (!window.confirm('Are you sure you want to delete this message?')) return;
     try {
-      await axios.delete(`http://localhost:3000/api/contact/messages/${messageId}`);
+      await axios.delete(`${API_BASE_URL}/api/contact/messages/${messageId}`);
       fetchMessages(selectedStatus);
       if (selectedMessage && selectedMessage._id === messageId) {
         setSelectedMessage(null);

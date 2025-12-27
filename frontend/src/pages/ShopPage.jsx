@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import ProductCard from '../components/ProductCard';
 import './ShopPage.css';
 
@@ -14,7 +15,7 @@ const ShopPage = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`http://localhost:3000/api/vendors/${id}/public`);
+        const res = await axios.get(`${API_BASE_URL}/api/vendors/${id}/public`);
         setShop(res.data.vendor);
         setProducts(res.data.products);
       } catch (error) {

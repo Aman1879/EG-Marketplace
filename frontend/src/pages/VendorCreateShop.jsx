@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import './VendorOnboarding.css';
 
 const VendorCreateShop = () => {
@@ -29,7 +30,7 @@ const VendorCreateShop = () => {
   useEffect(() => {
     const fetchVendor = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/vendors/me');
+        const res = await axios.get(`${API_BASE_URL}/api/vendors/me`);
         if (res.data) {
           setForm({
             shopName: res.data.shopName || '',
@@ -94,7 +95,7 @@ const VendorCreateShop = () => {
 
       console.log('Submitting payload:', { ...payload, logoUrl: payload.logoUrl?.substring(0, 50) + '...', bannerUrl: payload.bannerUrl?.substring(0, 50) + '...' });
 
-      const response = await axios.post('http://localhost:3000/api/vendors/create', payload, {
+      const response = await axios.post(`${API_BASE_URL}/api/vendors/create`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import './OrderHistory.css';
 
 const OrderHistory = () => {
@@ -12,7 +13,7 @@ const OrderHistory = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/orders/buyer/my-orders');
+      const response = await axios.get(`${API_BASE_URL}/api/orders/buyer/my-orders`);
       setOrders(response.data);
       setLoading(false);
     } catch (error) {

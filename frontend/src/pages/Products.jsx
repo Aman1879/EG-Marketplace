@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import ProductCard from '../components/ProductCard';
 import './Products.css';
 
@@ -28,8 +29,8 @@ const Products = () => {
   const fetchProducts = async (cat) => {
     try {
       const url = cat
-        ? `http://localhost:3000/api/products?category=${encodeURIComponent(cat)}`
-        : 'http://localhost:3000/api/products';
+        ? `${API_BASE_URL}/api/products?category=${encodeURIComponent(cat)}`
+        : `${API_BASE_URL}/api/products`;
       const response = await axios.get(url);
       setProducts(response.data);
       setLoading(false);

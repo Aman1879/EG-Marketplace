@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
+import { API_BASE_URL } from '../config/api';
 import './VendorDashboard.css';
 
 const VendorDashboard = () => {
@@ -71,7 +72,7 @@ const VendorDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const shopsRes = await axios.get('http://localhost:3000/api/vendors/my-shops');
+      const shopsRes = await axios.get(`${API_BASE_URL}/api/vendors/my-shops`);
       setShops(shopsRes.data || []);
       const chosenShop = shopsRes.data?.[0];
       if (chosenShop) {
@@ -94,11 +95,11 @@ const VendorDashboard = () => {
   const fetchShopData = async (shopId) => {
     try {
       const [productsRes, ordersRes, disputesRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/products/vendor/my-products', {
+        axios.get(`${API_BASE_URL}/api/products/vendor/my-products`, {
           params: { vendorId: shopId }
         }),
-        axios.get('http://localhost:3000/api/orders/vendor/my-orders'),
-        axios.get('http://localhost:3000/api/disputes/vendor/my-disputes')
+        axios.get(`${API_BASE_URL}/api/orders/vendor/my-orders`),
+        axios.get(`${API_BASE_URL}/api/disputes/vendor/my-disputes`)
       ]);
       setProducts(productsRes.data);
       // Filter orders to show only orders for the selected shop
@@ -126,12 +127,12 @@ const VendorDashboard = () => {
     e.preventDefault();
     try {
       if (editingProduct) {
-        await axios.put(`http://localhost:3000/api/products/${editingProduct._id}`, {
+        await axios.put(`${API_BASE_URL}/api/products/${editingProduct._id}`, {
           ...productForm,
           vendorId: activeShopId
         });
       } else {
-        await axios.post('http://localhost:3000/api/products', {
+        await axios.post(`${API_BASE_URL}/api/products`, {
           ...productForm,
           vendorId: activeShopId
         });
@@ -165,7 +166,7 @@ const VendorDashboard = () => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     
     try {
-      await axios.delete(`http://localhost:3000/api/products/${productId}`);
+      await axios.delete(`${API_BASE_URL}/api/products/${productId}`);
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Error deleting product');
@@ -174,7 +175,7 @@ const VendorDashboard = () => {
 
   const handleUpdateOrderStatus = async (orderId, status) => {
     try {
-      await axios.put(`http://localhost:3000/api/orders/${orderId}/status`, { status });
+      await axios.put(`${API_BASE_URL}/api/orders/${orderId}/status`, { status });
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Error updating order status');

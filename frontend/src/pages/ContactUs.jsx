@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import './ContactUs.css';
 
 const ContactUs = () => {
@@ -58,7 +59,7 @@ const ContactUs = () => {
     setSubmitStatus({ type: '', message: '' });
     
     try {
-      const response = await axios.post('http://localhost:3000/api/contact/submit', formData);
+      const response = await axios.post(`${API_BASE_URL}/api/contact/submit`, formData);
       setSubmitStatus({ 
         type: 'success', 
         message: response.data.message || 'Thank you for your message! We will get back to you soon.' 

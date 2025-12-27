@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import ProductCard from '../components/ProductCard';
 import './Home.css';
 
@@ -16,8 +17,8 @@ const Home = () => {
   const fetchData = async () => {
     try {
       const [prodRes, shopRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/products'),
-        axios.get('http://localhost:3000/api/vendors/shops')
+        axios.get(`${API_BASE_URL}/api/products`),
+        axios.get(`${API_BASE_URL}/api/vendors/shops`)
       ]);
       setProducts(prodRes.data || []);
       setShops((shopRes.data || []).slice(0, 6)); // featured shops

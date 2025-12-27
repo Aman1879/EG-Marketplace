@@ -44,7 +44,7 @@ const BuyerDashboard = () => {
 
   const fetchShops = async (category) => {
     try {
-      const res = await axios.get('http://localhost:3000/api/vendors/shops', {
+      const res = await axios.get('http://localhost:/api/vendors/shops', {
         params: { category }
       });
       setShops(res.data || []);
@@ -55,7 +55,7 @@ const BuyerDashboard = () => {
 
   const fetchProducts = async (category) => {
     try {
-      const res = await axios.get('http://localhost:3000/api/products', {
+      const res = await axios.get('http://localhost:/api/products', {
         params: { category }
       });
       setProducts(res.data || []);
