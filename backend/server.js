@@ -40,7 +40,7 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // Middleware
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://egmarketplace.netlify.app/';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://egmarketplace.netlify.app';
 app.use(cors({
   origin: FRONTEND_URL,
   credentials: true
