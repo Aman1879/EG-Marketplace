@@ -1,11 +1,11 @@
-<<<<<<< HEAD
+
 ## Live Website
 
-Check out the live version of the Livestock Management System here:  
+Check out the live version of the Eg Marketplace here:  
 [Eg Marketplace](https://egmarketplace.netlify.app/)
 # Online Marketplace Platform
 
-A full-stack multi-vendor marketplace platform inspired by Etsy, built with Node.js, Express, MongoDB, and React.
+A full-stack multi-vendor marketplace platform built with Node.js, Express, MongoDB, and React.
 
 ## 🎯 Features
 
