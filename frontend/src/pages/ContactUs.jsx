@@ -21,27 +21,8 @@ const ContactUs = () => {
       email: 'Amanara13579@gmail.com',
       phone: '+91 6299211631',
       linkedin: 'https://www.linkedin.com/in/aman-kumar-singh-827631283/',
+      instagram: 'https://www.instagram.com/eg_aman02/',
       bio: 'Tech enthusiast and full-stack developer specializing in scalable web applications. Building innovative solutions for seamless marketplace experiences.',
-      image: '👨‍💼'
-    },
-    {
-      id: 2,
-      name: 'Shivani ',
-      role: 'CTO & Co-Founder',
-      email: 'Shivani@marketplace.com',
-      phone: '+91 1234567890',
-      linkedin: '',
-      bio: 'empowering teams and delivering cutting-edge technological solutions.',
-      image: '👩‍💻'
-    },
-    {
-      id: 3,
-      name: 'Rahul',
-      role: 'Head of Operations',
-      email: 'Rahul13579@marketplace.com',
-      phone: '+91 1234567890',
-      linkedin: 'linkedin.com/in/amitpatel',
-      bio: 'Operations expert focused on customer satisfaction and vendor relations. Ensuring smooth operations and exceptional service delivery.',
       image: '👨‍💼'
     }
   ];
@@ -155,8 +136,9 @@ const ContactUs = () => {
 
           {/* Team Members Section */}
           <div className="team-section">
-            <h2>Meet Our Team</h2>
-            <p className="team-intro">Our dedicated team is here to help you with any questions or concerns.</p>
+            <h2>About Me</h2>
+            <p className="team-intro">
+I designed and built this website myself and handle everything you see here..</p>
             
             <div className="team-grid">
               {teamMembers.map((member) => (
@@ -183,6 +165,14 @@ const ContactUs = () => {
                         </a>
                       </div>
                     )}
+                    {member.instagram && (
+                      <div className="contact-item">
+                        <span className="contact-icon">📸</span>
+                        <a href={member.instagram.startsWith('http') ? member.instagram : `https://${member.instagram}`} target="_blank" rel="noopener noreferrer">
+                          Instagram Profile
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -195,8 +185,8 @@ const ContactUs = () => {
               <div className="info-icon">📍</div>
               <h3>Office Address</h3>
               <p>
-                Lovely Professional University,<br />
-                Phagwara, Punjab 144411<br />
+                Bihar,<br />
+                Patna, Bihar 800001<br />
                 India
               </p>
             </div>
@@ -215,9 +205,9 @@ const ContactUs = () => {
               <div className="info-icon">📞</div>
               <h3>General Inquiries</h3>
               <p>
-                Phone: +91 1800-123-4567<br />
-                Email: abcd@marketplace.com<br />
-                Support: support@marketplace.com
+                Phone: +91 1234567890<br />
+                Email: egmarketplace@gmail.com<br />
+                Support: egsupport@gmail.com
               </p>
             </div>
           </div>
