@@ -5,8 +5,10 @@
 }
 
 .page-title {
+  font-family: var(--headline-font);
   font-size: 42px;
-  font-weight: bold;
+  font-weight: 900;
+  letter-spacing: 0.5px;
   margin-bottom: 40px;
   color: var(--text-color);
   text-align: center;

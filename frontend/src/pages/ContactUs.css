@@ -12,9 +12,11 @@
 }
 
 .contact-hero h1 {
+  font-family: var(--headline-font);
   font-size: 3rem;
   margin-bottom: 20px;
-  font-weight: 700;
+  font-weight: 900;
+  letter-spacing: 0.5px;
 }
 
 .contact-hero p {
@@ -38,6 +40,22 @@
   padding: 40px;
   margin-bottom: 60px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  animation: formDropIn 0.75s ease-out;
+}
+
+@keyframes formDropIn {
+  0% {
+    transform: translateY(-18px);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(8px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .contact-form-section h2 {

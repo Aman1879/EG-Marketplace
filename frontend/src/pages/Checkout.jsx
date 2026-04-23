@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,22 @@ const Checkout = () => {
     phone: ''
   });
   const [loading, setLoading] = useState(false);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+
+  useEffect(() => {
+    // Load Razorpay script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => setRazorpayLoaded(true);
+    script.onerror = () => console.error('Failed to load Razorpay');
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
 
   const total = cart.reduce((sum, item) => {
     const price = item.priceAtAdd ?? item.product?.price ?? 0;
@@ -49,13 +65,59 @@ const Checkout = () => {
         shippingAddress
       };
 
-      const response = await axios.post(`${API_BASE_URL}/api/orders`, orderData);
+      // Step 1: Create Razorpay order
+      const response = await axios.post(`${API_BASE_URL}/api/orders/create-razorpay-order`, orderData);
       
-      alert('Order placed successfully!');
-      clearCart();
-      navigate('/orders');
+      const { razorpayOrder, orderId, key } = response.data;
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay SDK not loaded');
+      }
+
+      const options = {
+        key,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: 'EG Marketplace',
+        description: `Order #${orderId}`,
+        order_id: razorpayOrder.id,
+        handler: async (paymentResponse) => {
+          try {
+            // Step 2: Verify payment on backend
+            await axios.post(`${API_BASE_URL}/api/orders/verify-payment`, {
+              orderId,
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature
+            });
+
+            alert('Payment successful! Your order has been placed.');
+            clearCart();
+            navigate('/orders');
+          } catch (verifyError) {
+            console.error('Payment verification failed:', verifyError);
+            alert(verifyError.response?.data?.message || 'Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          phone: address.phone
+        },
+        theme: {
+          color: '#3399cc'
+        },
+        modal: {
+          ondismiss: () => {
+            alert('Payment cancelled');
+            setLoading(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error placing order');
+      alert(error.response?.data?.message || 'Error creating order');
+      console.error('Checkout error:', error);
     } finally {
       setLoading(false);
     }
@@ -70,6 +132,16 @@ const Checkout = () => {
           <button onClick={() => navigate('/products')} className="btn btn-primary">
             Continue Shopping
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!razorpayLoaded) {
+    return (
+      <div className="checkout-page">
+        <div className="container">
+          <p>Loading payment gateway...</p>
         </div>
       </div>
     );
@@ -177,7 +249,7 @@ const Checkout = () => {
                 className="btn btn-primary btn-large"
                 disabled={loading}
               >
-                {loading ? 'Placing Order...' : 'Place Order'}
+                {loading ? 'Processing...' : 'Proceed to Payment'}
               </button>
             </form>
           </div>
@@ -191,12 +263,13 @@ const Checkout = () => {
               </div>
               <div className="summary-row">
                 <span>Shipping:</span>
-                <span>Calculated at checkout</span>
+                <span>Free</span>
               </div>
               <div className="summary-row total">
                 <span>Total:</span>
                 <span>₹{total.toFixed(2)}</span>
               </div>
+              <p className="info-text">You'll be redirected to Razorpay to complete payment securely.</p>
             </div>
           </div>
         </div>

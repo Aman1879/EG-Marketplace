@@ -64,10 +64,48 @@ const vendorSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  totalPaidEarnings: {
+    type: Number,
+    default: 0
+  },
+  razorpayAccountId: {
+    type: String,
+    default: ''
+  },
+  razorpayAccountStatus: {
+    type: String,
+    enum: ['not_created', 'created', 'activated', 'suspended'],
+    default: 'not_created'
+  },
+  kycStatus: {
+    type: String,
+    enum: ['not_submitted', 'pending', 'verified', 'rejected'],
+    default: 'not_submitted'
+  },
+  payoutDetails: {
+    accountHolderName: { type: String, default: '' },
+    accountNumberLast4: { type: String, default: '' },
+    ifscCode: { type: String, default: '' },
+    bankName: { type: String, default: '' },
+    beneficiaryName: { type: String, default: '' }
+  },
+  upiId: {
+    type: String,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
+});
+
+vendorSchema.pre('save', function updateTimestamp(next) {
+  this.updatedAt = new Date();
+  next();
 });
 
 // Ensure no unique index on userId alone (vendors can have multiple shops)

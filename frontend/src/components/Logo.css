@@ -15,7 +15,20 @@
 
 .logo-icon svg {
   display: block;
+  transform-origin: center;
+  transition: transform 0.35s ease;
 }
+
+.logo-container:hover .logo-icon svg {
+  transform: rotateY(180deg);
+}
+
+.logo-eg {
+  opacity: 1;
+  transform: none;
+  transform-origin: center;
+}
+
 
 .logo-small .logo-icon svg {
   width: 40px;

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bungee&family=Playfair+Display:wght@700;800;900&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -34,5 +36,14 @@ button {
 input, textarea {
   font-family: inherit;
   outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 

@@ -1,7 +1,11 @@
 // API Configuration
 // Use environment variables in production, fallback to localhost for development
-const API_BASE_URL = 'https://eg-marketplace-1.onrender.com';
-const SOCKET_URL = 'https://eg-marketplace-1.onrender.com';
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : 'https://eg-marketplace-1.onrender.com');
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_BASE_URL;
 export const API_ENDPOINTS = {
   AUTH: `${API_BASE_URL}/api/auth`,
   PRODUCTS: `${API_BASE_URL}/api/products`,

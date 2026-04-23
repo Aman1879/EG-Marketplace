@@ -4,6 +4,11 @@
   flex-direction: column;
 }
 
+.page-motion {
+  flex: 1;
+  width: 100%;
+}
+
 /* Etsy-inspired color scheme */
 :root {
   --primary-color: #f1641e;
@@ -16,6 +21,7 @@
   --error-color: #d32f2f;
   --white: #ffffff;
   --hover-bg: #fafafa;
+  --headline-font: 'Playfair Display', serif;
 }
 
 .container {
@@ -34,6 +40,19 @@
   transition: all 0.2s;
   display: inline-block;
   text-align: center;
+}
+
+.btn,
+.btn-submit,
+button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover,
+.btn-submit:hover,
+button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
 }
 
 .btn-primary {
@@ -100,6 +119,25 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 20px;
   margin-bottom: 20px;
+}
+
+.card,
+.team-card,
+.info-card,
+.product-card,
+.order-card,
+.shop-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover,
+.team-card:hover,
+.info-card:hover,
+.product-card:hover,
+.order-card:hover,
+.shop-card:hover {
+  transform: translateY(-4px) rotate(-0.2deg);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
 }
 
 /* Grid styles */

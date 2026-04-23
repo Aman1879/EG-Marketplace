@@ -12,8 +12,10 @@
 }
 
 .page-title {
+  font-family: var(--headline-font);
   font-size: 3rem;
-  font-weight: 700;
+  font-weight: 900;
+  letter-spacing: 0.5px;
   color: #333;
   margin-bottom: 10px;
   display: flex;
@@ -528,6 +530,7 @@
 
 @media (max-width: 768px) {
   .page-title {
+    font-family: var(--headline-font);
     font-size: 2rem;
   }
 

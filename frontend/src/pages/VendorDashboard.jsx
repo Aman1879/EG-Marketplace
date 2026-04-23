@@ -208,6 +208,9 @@ const VendorDashboard = () => {
             <button className="btn btn-secondary" onClick={() => navigate('/vendor/create-shop')}>
               Add Shop
             </button>
+            <button className="btn btn-primary" onClick={() => navigate('/vendor/earnings')}>
+              Earnings & Payouts
+            </button>
           </div>
         </div>
 

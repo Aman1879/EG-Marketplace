@@ -26,6 +26,7 @@ const Logo = ({ showText = true, size = 'medium' }) => {
           />
           {/* Eg Text inside bag - properly spaced */}
           <text
+            className="logo-eg"
             x="60"
             y="80"
             fontSize="32"

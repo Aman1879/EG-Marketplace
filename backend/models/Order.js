@@ -39,6 +39,44 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  commissionRate: {
+    type: Number,
+    default: 0.10
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['created', 'authorized', 'paid', 'failed', 'refunded'],
+    default: 'created'
+  },
+  paymentMethod: {
+    type: String,
+    default: ''
+  },
+  razorpayOrderId: {
+    type: String,
+    default: ''
+  },
+  razorpayPaymentId: {
+    type: String,
+    default: ''
+  },
+  razorpaySignature: {
+    type: String,
+    default: ''
+  },
+  transferId: {
+    type: String,
+    default: ''
+  },
+  transferStatus: {
+    type: String,
+    enum: ['not_initiated', 'queued', 'processed', 'failed', 'reversed'],
+    default: 'not_initiated'
+  },
+  transferError: {
+    type: String,
+    default: ''
+  },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'Pending', 'Shipped', 'Delivered', 'Cancelled'],
@@ -48,6 +86,22 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  refundId: {
+    type: String,
+    default: ''
+  },
+  refundAmount: {
+    type: Number,
+    default: 0
+  },
+  failureReason: {
+    type: String,
+    default: ''
+  },
+  notes: {
+    type: Object,
+    default: {}
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -56,6 +110,11 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+orderSchema.pre('save', function updateTimestamp(next) {
+  this.updatedAt = new Date();
+  next();
 });
 
 module.exports = mongoose.model('Order', orderSchema);

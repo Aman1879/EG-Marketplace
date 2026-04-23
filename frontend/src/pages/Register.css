@@ -14,13 +14,32 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 450px;
+  animation: formDropIn 0.7s ease-out;
+}
+
+@keyframes formDropIn {
+  0% {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .auth-container h1 {
+  font-family: var(--headline-font);
   font-size: 32px;
   margin-bottom: 30px;
   text-align: center;
   color: var(--text-color);
+  font-weight: 900;
+  letter-spacing: 0.4px;
 }
 
 .auth-form {

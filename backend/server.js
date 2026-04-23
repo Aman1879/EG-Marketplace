@@ -40,11 +40,49 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // Middleware
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://egmarketplace.netlify.app';
-app.use(cors({
-  origin: FRONTEND_URL,
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://egmarketplace.netlify.app',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+];
+
+const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
+  .filter(Boolean)
+  .join(',')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+const ALLOWED_ORIGINS = envOrigins.length > 0 ? envOrigins : DEFAULT_ALLOWED_ORIGINS;
+const CORS_ALLOW_ALL = process.env.CORS_ALLOW_ALL === 'true';
+
+function isLocalhostOrigin(origin) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (CORS_ALLOW_ALL) return true;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (process.env.NODE_ENV !== 'production' && isLocalhostOrigin(origin)) return true;
+  return false;
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests and approved browser origins.
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
+// Razorpay webhook signature verification requires the raw request body.
+app.use('/api/orders/webhook/razorpay', express.raw({ type: 'application/json' }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -97,7 +135,12 @@ app.use('/api/contact', contactRoutes);
 // Socket.IO setup
 const io = socketIo(httpServer, {
   cors: {
-    origin: FRONTEND_URL,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true
   }
 });

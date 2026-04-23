@@ -3,7 +3,9 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Vendor = require('../models/Vendor');
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 const { authenticate, authorize } = require('../middleware/auth');
+const { razorpay, hasRazorpayCredentials } = require('../config/razorpay');
 
 // Get current vendor profile (latest)
 router.get('/me', authenticate, authorize('vendor'), async (req, res) => {
@@ -299,6 +301,238 @@ router.post('/profile', authenticate, authorize('vendor'), [
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+function maskAccountNumber(accountNumber) {
+  const digits = String(accountNumber || '').replace(/\D/g, '');
+  return digits ? digits.slice(-4) : '';
+}
+
+async function createLinkedAccountForVendor(vendor, bankDetails) {
+  if (!hasRazorpayCredentials) {
+    throw new Error('Razorpay credentials are not configured on server');
+  }
+
+  const fallbackEmail = vendor.contactEmail || `vendor-${vendor._id}@example.com`;
+  const fallbackPhone = vendor.contactPhone || '9000000000';
+
+  const payload = {
+    email: fallbackEmail,
+    phone: fallbackPhone,
+    type: 'route',
+    reference_id: `vendor_${vendor._id}`,
+    legal_business_name: vendor.shopName || 'Marketplace Vendor',
+    business_type: 'individual',
+    contact_name: vendor.shopName || 'Vendor',
+    profile: {
+      category: 'services',
+      subcategory: 'consulting'
+    },
+    notes: {
+      vendorId: vendor._id.toString(),
+      shopName: vendor.shopName || ''
+    }
+  };
+
+  if (bankDetails?.accountNumber && bankDetails?.ifscCode) {
+    payload.bank_account = {
+      name: bankDetails.accountHolderName || vendor.shopName || 'Vendor',
+      ifsc: bankDetails.ifscCode,
+      account_number: String(bankDetails.accountNumber),
+      beneficiary_name: bankDetails.beneficiaryName || bankDetails.accountHolderName || vendor.shopName || 'Vendor'
+    };
+  }
+
+  const account = await razorpay.accounts.create(payload);
+  return account;
+}
+
+// Create linked account for a shop (Razorpay Route)
+router.post('/:id/razorpay/linked-account', authenticate, authorize('vendor'), async (req, res) => {
+  try {
+    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor shop not found' });
+    }
+
+    if (vendor.razorpayAccountId) {
+      return res.json({
+        message: 'Linked account already exists',
+        razorpayAccountId: vendor.razorpayAccountId,
+        razorpayAccountStatus: vendor.razorpayAccountStatus,
+        kycStatus: vendor.kycStatus
+      });
+    }
+
+    const bankDetails = req.body?.bankDetails || {};
+    const account = await createLinkedAccountForVendor(vendor, bankDetails);
+
+    vendor.razorpayAccountId = account.id;
+    vendor.razorpayAccountStatus = account.status === 'activated' ? 'activated' : 'created';
+    vendor.kycStatus = account.status === 'activated' ? 'verified' : 'pending';
+    if (bankDetails.accountNumber) {
+      vendor.payoutDetails = {
+        accountHolderName: bankDetails.accountHolderName || '',
+        accountNumberLast4: maskAccountNumber(bankDetails.accountNumber),
+        ifscCode: bankDetails.ifscCode || '',
+        bankName: bankDetails.bankName || '',
+        beneficiaryName: bankDetails.beneficiaryName || ''
+      };
+    }
+    if (req.body?.upiId) {
+      vendor.upiId = String(req.body.upiId).trim();
+    }
+
+    await vendor.save();
+
+    res.status(201).json({
+      message: 'Vendor linked account created successfully',
+      razorpayAccountId: vendor.razorpayAccountId,
+      razorpayAccountStatus: vendor.razorpayAccountStatus,
+      kycStatus: vendor.kycStatus,
+      upiId: vendor.upiId,
+      payoutDetails: vendor.payoutDetails
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to create Razorpay linked account', error: error.message });
+  }
+});
+
+// Update payout settings for a specific shop
+router.put('/:id/payout-settings', authenticate, authorize('vendor'), async (req, res) => {
+  try {
+    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor shop not found' });
+    }
+
+    const {
+      upiId,
+      accountHolderName,
+      accountNumber,
+      ifscCode,
+      bankName,
+      beneficiaryName,
+      autoCreateLinkedAccount
+    } = req.body;
+
+    if (typeof upiId === 'string') {
+      vendor.upiId = upiId.trim();
+    }
+
+    const hasBankPayload = accountNumber || ifscCode || accountHolderName || bankName || beneficiaryName;
+    if (hasBankPayload) {
+      vendor.payoutDetails = {
+        accountHolderName: String(accountHolderName || vendor.payoutDetails?.accountHolderName || '').trim(),
+        accountNumberLast4: accountNumber ? maskAccountNumber(accountNumber) : vendor.payoutDetails?.accountNumberLast4 || '',
+        ifscCode: String(ifscCode || vendor.payoutDetails?.ifscCode || '').trim().toUpperCase(),
+        bankName: String(bankName || vendor.payoutDetails?.bankName || '').trim(),
+        beneficiaryName: String(beneficiaryName || vendor.payoutDetails?.beneficiaryName || '').trim()
+      };
+    }
+
+    if (!vendor.razorpayAccountId && autoCreateLinkedAccount) {
+      const account = await createLinkedAccountForVendor(vendor, {
+        accountHolderName,
+        accountNumber,
+        ifscCode,
+        bankName,
+        beneficiaryName
+      });
+      vendor.razorpayAccountId = account.id;
+      vendor.razorpayAccountStatus = account.status === 'activated' ? 'activated' : 'created';
+      vendor.kycStatus = account.status === 'activated' ? 'verified' : 'pending';
+    }
+
+    await vendor.save();
+
+    res.json({
+      message: 'Payout settings updated',
+      vendor: {
+        _id: vendor._id,
+        shopName: vendor.shopName,
+        upiId: vendor.upiId,
+        payoutDetails: vendor.payoutDetails,
+        razorpayAccountId: vendor.razorpayAccountId,
+        razorpayAccountStatus: vendor.razorpayAccountStatus,
+        kycStatus: vendor.kycStatus
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update payout settings', error: error.message });
+  }
+});
+
+// Get payout settings for selected shop
+router.get('/:id/payout-settings', authenticate, authorize('vendor'), async (req, res) => {
+  try {
+    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor shop not found' });
+    }
+
+    const paidOrdersCount = await Order.countDocuments({ vendorId: vendor._id, paymentStatus: 'paid' });
+    const totals = await Order.aggregate([
+      { $match: { vendorId: vendor._id, paymentStatus: 'paid' } },
+      {
+        $group: {
+          _id: null,
+          totalOrderVolume: { $sum: '$totalAmount' },
+          totalCommissionPaid: { $sum: '$adminCommission' }
+        }
+      }
+    ]);
+
+    res.json({
+      _id: vendor._id,
+      shopName: vendor.shopName,
+      upiId: vendor.upiId,
+      payoutDetails: vendor.payoutDetails,
+      razorpayAccountId: vendor.razorpayAccountId,
+      razorpayAccountStatus: vendor.razorpayAccountStatus,
+      kycStatus: vendor.kycStatus,
+      totalEarnings: vendor.totalEarnings || 0,
+      totalPaidEarnings: vendor.totalPaidEarnings || 0,
+      paidOrdersCount,
+      totalOrderVolume: totals?.[0]?.totalOrderVolume || 0,
+      totalCommissionPaid: totals?.[0]?.totalCommissionPaid || 0
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch payout settings', error: error.message });
+  }
+});
+
+// Earnings summary for all shops of current vendor
+router.get('/my/earnings-summary', authenticate, authorize('vendor'), async (req, res) => {
+  try {
+    const shops = await Vendor.find({ userId: req.user._id }).sort({ createdAt: -1 });
+
+    const summary = await Promise.all(
+      shops.map(async (shop) => {
+        const paidOrdersCount = await Order.countDocuments({ vendorId: shop._id, paymentStatus: 'paid' });
+        const totalOrderVolume = await Order.aggregate([
+          { $match: { vendorId: shop._id, paymentStatus: 'paid' } },
+          { $group: { _id: null, amount: { $sum: '$totalAmount' }, commission: { $sum: '$adminCommission' } } }
+        ]);
+
+        return {
+          vendorId: shop._id,
+          shopName: shop.shopName,
+          paidOrdersCount,
+          totalPaidEarnings: shop.totalPaidEarnings || 0,
+          totalEarnings: shop.totalEarnings || 0,
+          totalOrderVolume: totalOrderVolume?.[0]?.amount || 0,
+          totalCommissionPaid: totalOrderVolume?.[0]?.commission || 0,
+          razorpayAccountStatus: shop.razorpayAccountStatus,
+          kycStatus: shop.kycStatus
+        };
+      })
+    );
+
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch earnings summary', error: error.message });
   }
 });
 

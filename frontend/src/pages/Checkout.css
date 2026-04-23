@@ -15,6 +15,22 @@
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: formDropIn 0.75s ease-out;
+}
+
+@keyframes formDropIn {
+  0% {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .checkout-form {
