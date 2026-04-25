@@ -186,6 +186,50 @@ const VendorDashboard = () => {
     return <div className="spinner"></div>;
   }
 
+  if (vendorProfile && vendorProfile.approvalStatus !== 'approved') {
+    const isRejected = vendorProfile.approvalStatus === 'rejected';
+
+    return (
+      <div className="vendor-dashboard">
+        <div className="container">
+          <div className="dashboard-top">
+            <h1 className="page-title">Vendor Dashboard</h1>
+          </div>
+
+          <div className="shop-summary pending-shop-summary">
+            <div className="shop-info">
+              <div>
+                <h2>{vendorProfile.shopName}</h2>
+                <p>{vendorProfile.description || 'No description yet.'}</p>
+                <p className="muted">GSTIN: {vendorProfile.gstin || 'Not provided'}</p>
+                <p className="muted">
+                  Status: {isRejected ? 'Rejected' : 'Pending admin approval'}
+                </p>
+                {vendorProfile.approvalNotes && (
+                  <p className="muted">Admin note: {vendorProfile.approvalNotes}</p>
+                )}
+              </div>
+            </div>
+            <div className="shop-actions">
+              <button className="btn btn-secondary" onClick={() => navigate('/vendor/create-shop')}>
+                Edit Shop Request
+              </button>
+            </div>
+          </div>
+
+          <div className="section pending-info-card">
+            <h2 className="section-title">Awaiting Approval</h2>
+            <p>
+              {isRejected
+                ? 'Your shop request was rejected. Please update the details and resubmit.'
+                : 'Your shop request is waiting for admin approval. You will be able to add products after approval.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="vendor-dashboard">
       <div className="container">

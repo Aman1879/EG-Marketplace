@@ -48,6 +48,10 @@ const vendorSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  gstin: {
+    type: String,
+    default: ''
+  },
   averageRating: {
     type: Number,
     default: 0
@@ -59,6 +63,28 @@ const vendorSchema = new mongoose.Schema({
   onboardingComplete: {
     type: Boolean,
     default: false
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved'
+  },
+  approvalRequestedAt: {
+    type: Date,
+    default: null
+  },
+  approvalReviewedAt: {
+    type: Date,
+    default: null
+  },
+  approvalReviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  approvalNotes: {
+    type: String,
+    default: ''
   },
   totalEarnings: {
     type: Number,

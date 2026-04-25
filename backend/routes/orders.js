@@ -69,7 +69,10 @@ async function buildOrderPayload(products) {
 async function createVendorTransfer({ razorpayPaymentId, order }) {
   const vendor = await Vendor.findById(order.vendorId);
   if (!vendor || !vendor.razorpayAccountId) {
-    throw new Error('Vendor is not onboarded for Razorpay Route payouts');
+    order.transferId = '';
+    order.transferStatus = 'not_initiated';
+    order.transferError = 'Vendor payout account not configured yet';
+    return null;
   }
 
   const vendorAmountPaise = toPaise(order.vendorEarning);
@@ -108,7 +111,10 @@ async function createVendorTransfer({ razorpayPaymentId, order }) {
 router.post('/create-razorpay-order', authenticate, authorize('buyer'), async (req, res) => {
   try {
     if (!hasRazorpayCredentials) {
-      return res.status(500).json({ message: 'Razorpay credentials are not configured on server' });
+      return res.status(503).json({
+        message: 'Razorpay credentials are not configured on server',
+        details: 'Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend/.env and restart backend server.'
+      });
     }
 
     const { products, shippingAddress } = req.body;
@@ -122,10 +128,6 @@ router.post('/create-razorpay-order', authenticate, authorize('buyer'), async (r
     }
 
     const payload = await buildOrderPayload(products);
-    const vendor = await Vendor.findById(payload.vendorId);
-    if (!vendor || !vendor.razorpayAccountId) {
-      return res.status(400).json({ message: 'Vendor payout account is not configured yet for this shop' });
-    }
 
     const order = await Order.create({
       buyerId: req.user._id,

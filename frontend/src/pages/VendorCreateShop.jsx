@@ -14,6 +14,7 @@ const VendorCreateShop = () => {
     category: '',
     categories: [],
     country: 'India',
+    gstin: '',
     logoUrl: '',
     bannerUrl: '',
     address: '',
@@ -38,6 +39,7 @@ const VendorCreateShop = () => {
             category: res.data.category || '',
             categories: res.data.categories || [],
             country: 'India',
+            gstin: res.data.gstin || '',
             logoUrl: res.data.logoUrl || '',
             bannerUrl: res.data.bannerUrl || '',
             address: res.data.address || '',
@@ -86,6 +88,7 @@ const VendorCreateShop = () => {
         category: form.category.trim(),
         categories: [form.category.trim()], // always send array for backend
         country: form.country || 'India',
+        gstin: form.gstin.trim().toUpperCase(),
         logoUrl: form.logoUrl?.trim() || '',
         bannerUrl: form.bannerUrl?.trim() || '',
         address: form.address?.trim() || '',
@@ -303,6 +306,22 @@ const VendorCreateShop = () => {
                 </select>
               </div>
               <div className="form-group">
+                <label>GSTIN *</label>
+                <input
+                  type="text"
+                  name="gstin"
+                  value={form.gstin}
+                  onChange={handleChange}
+                  required
+                  minLength={15}
+                  maxLength={15}
+                  pattern="[0-9A-Z]{15}"
+                  placeholder="15-character GSTIN"
+                  style={{ textTransform: 'uppercase' }}
+                />
+                <p className="muted small">Your shop will be sent to admin for approval after submission.</p>
+              </div>
+              <div className="form-group">
                 <label>Country</label>
                 <input
                   type="text"
@@ -356,7 +375,7 @@ const VendorCreateShop = () => {
                 </div>
               </div>
               <button type="submit" className="btn btn-primary btn-large" disabled={loading}>
-                {loading ? 'Saving...' : 'Save and Continue'}
+                {loading ? 'Submitting...' : 'Submit for Approval'}
               </button>
             </form>
           </div>

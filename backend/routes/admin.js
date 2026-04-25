@@ -91,5 +91,78 @@ router.get('/dashboard', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
+// Get pending vendor shop approval requests
+router.get('/vendor-requests', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const requests = await Vendor.find({ approvalStatus: 'pending' })
+      .populate('userId', 'username email')
+      .sort({ approvalRequestedAt: -1, createdAt: -1 });
+
+    res.json({ requests });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Approve a vendor shop request
+router.put('/vendor-requests/:id/approve', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor request not found' });
+    }
+
+    vendor.approvalStatus = 'approved';
+    vendor.onboardingComplete = true;
+    vendor.approvalReviewedAt = new Date();
+    vendor.approvalReviewedBy = req.user._id;
+    vendor.approvalNotes = '';
+    await vendor.save();
+
+    if (global.orderEventEmitter) {
+      global.orderEventEmitter.emit('vendorApprovalUpdated', {
+        vendorId: vendor._id.toString(),
+        userId: vendor.userId.toString(),
+        shopName: vendor.shopName,
+        approvalStatus: vendor.approvalStatus
+      });
+    }
+
+    res.json({ message: 'Vendor shop approved', vendor });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Reject a vendor shop request
+router.put('/vendor-requests/:id/reject', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor request not found' });
+    }
+
+    vendor.approvalStatus = 'rejected';
+    vendor.onboardingComplete = false;
+    vendor.approvalReviewedAt = new Date();
+    vendor.approvalReviewedBy = req.user._id;
+    vendor.approvalNotes = (req.body?.notes || '').trim();
+    await vendor.save();
+
+    if (global.orderEventEmitter) {
+      global.orderEventEmitter.emit('vendorApprovalUpdated', {
+        vendorId: vendor._id.toString(),
+        userId: vendor.userId.toString(),
+        shopName: vendor.shopName,
+        approvalStatus: vendor.approvalStatus
+      });
+    }
+
+    res.json({ message: 'Vendor shop rejected', vendor });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;
 

@@ -11,6 +11,20 @@
   text-align: center;
 }
 
+.approval-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff3cd;
+  color: #7a5a00;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border: 1px solid #ffe08a;
+}
+
 .page-title {
   font-family: var(--headline-font);
   font-size: 3rem;
@@ -157,6 +171,21 @@
   font-weight: 700;
   padding-bottom: 15px;
   border-bottom: 3px solid #667eea;
+}
+
+.section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  margin-left: 10px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #667eea;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .section-icon {

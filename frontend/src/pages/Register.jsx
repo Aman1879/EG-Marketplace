@@ -8,8 +8,7 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    role: 'buyer',
-    shopName: ''
+    role: 'buyer'
   });
   const [error, setError] = useState('');
   const { register } = useAuth();
@@ -90,13 +89,10 @@ const Register = () => {
 
           {formData.role === 'vendor' && (
             <div className="form-group">
-              <label>Shop Name (optional)</label>
-              <input
-                type="text"
-                name="shopName"
-                value={formData.shopName}
-                onChange={handleChange}
-              />
+              <label>Vendor note</label>
+              <p className="auth-note">
+                After signup, create your shop and submit GSTIN. Your shop will be visible only after admin approval.
+              </p>
             </div>
           )}
 

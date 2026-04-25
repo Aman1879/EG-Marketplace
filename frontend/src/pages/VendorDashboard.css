@@ -17,6 +17,19 @@
   min-width: 200px;
 }
 
+.pending-shop-summary {
+  border-left: 4px solid #ff9800;
+}
+
+.pending-info-card {
+  margin-top: 20px;
+}
+
+.pending-info-card p {
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
 .image-source-toggle {
   display: flex;
   gap: 12px;

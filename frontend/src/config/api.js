@@ -6,6 +6,7 @@ const API_BASE_URL =
   (import.meta.env.DEV ? 'http://localhost:3000' : 'https://eg-marketplace-1.onrender.com');
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_BASE_URL;
+
 export const API_ENDPOINTS = {
   AUTH: `${API_BASE_URL}/api/auth`,
   PRODUCTS: `${API_BASE_URL}/api/products`,

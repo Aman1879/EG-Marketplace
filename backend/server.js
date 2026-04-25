@@ -56,6 +56,10 @@ const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
 const ALLOWED_ORIGINS = envOrigins.length > 0 ? envOrigins : DEFAULT_ALLOWED_ORIGINS;
 const CORS_ALLOW_ALL = process.env.CORS_ALLOW_ALL === 'true';
 
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  console.warn('Razorpay is not configured. Checkout payment endpoints will return setup errors until keys are added.');
+}
+
 function isLocalhostOrigin(origin) {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
 }
@@ -167,6 +171,14 @@ io.on('connection', (socket) => {
 
   orderEventEmitter.on('disputeResolved', (disputeData) => {
     io.emit('disputeUpdate', disputeData);
+  });
+
+  orderEventEmitter.on('vendorRequestSubmitted', (requestData) => {
+    io.emit('newVendorRequest', requestData);
+  });
+
+  orderEventEmitter.on('vendorApprovalUpdated', (approvalData) => {
+    io.emit('vendorApprovalUpdate', approvalData);
   });
 });
 

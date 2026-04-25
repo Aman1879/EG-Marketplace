@@ -5,6 +5,22 @@ const Product = require('../models/Product');
 const Vendor = require('../models/Vendor');
 const { authenticate, authorize } = require('../middleware/auth');
 
+function ensureApprovedVendor(vendor, res) {
+  if (!vendor) {
+    res.status(404).json({ message: 'Vendor profile not found' });
+    return false;
+  }
+
+  if (vendor.approvalStatus !== 'approved' || !vendor.onboardingComplete) {
+    res.status(403).json({
+      message: 'Your shop is not approved by admin yet. You can add products after approval.'
+    });
+    return false;
+  }
+
+  return true;
+}
+
 // Get all products (optional category filter)
 router.get('/', async (req, res) => {
   try {
@@ -84,15 +100,11 @@ router.post('/', authenticate, authorize('vendor'), [
     let vendor;
     if (req.body.vendorId) {
       vendor = await Vendor.findOne({ _id: req.body.vendorId, userId: req.user._id });
-      if (!vendor) {
-        return res.status(404).json({ message: 'Vendor profile not found' });
-      }
     } else {
       vendor = await Vendor.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
-      if (!vendor) {
-        return res.status(404).json({ message: 'Vendor profile not found' });
-      }
     }
+
+    if (!ensureApprovedVendor(vendor, res)) return;
 
     const product = new Product({
       vendorId: vendor._id,
@@ -115,15 +127,11 @@ router.put('/:id', authenticate, authorize('vendor'), [
     let vendor;
     if (req.body.vendorId) {
       vendor = await Vendor.findOne({ _id: req.body.vendorId, userId: req.user._id });
-      if (!vendor) {
-        return res.status(404).json({ message: 'Vendor profile not found' });
-      }
     } else {
       vendor = await Vendor.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
-      if (!vendor) {
-        return res.status(404).json({ message: 'Vendor profile not found' });
-      }
     }
+
+    if (!ensureApprovedVendor(vendor, res)) return;
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -148,9 +156,7 @@ router.put('/:id', authenticate, authorize('vendor'), [
 router.delete('/:id', authenticate, authorize('vendor'), async (req, res) => {
   try {
     const vendor = await Vendor.findOne({ userId: req.user._id });
-    if (!vendor) {
-      return res.status(404).json({ message: 'Vendor profile not found' });
-    }
+    if (!ensureApprovedVendor(vendor, res)) return;
 
     const product = await Product.findById(req.params.id);
     if (!product) {

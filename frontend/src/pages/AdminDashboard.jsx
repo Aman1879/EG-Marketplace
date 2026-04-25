@@ -8,6 +8,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [commissions, setCommissions] = useState([]);
   const [vendorEarnings, setVendorEarnings] = useState([]);
+  const [vendorRequests, setVendorRequests] = useState([]);
   const [contactMessages, setContactMessages] = useState([]);
   const [messageStats, setMessageStats] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -18,18 +19,28 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshVendorRequests();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, commissionsRes, earningsRes, messagesRes, statsRes2] = await Promise.all([
+      const [statsRes, commissionsRes, earningsRes, requestsRes, messagesRes, statsRes2] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/admin/dashboard`),
         axios.get(`${API_BASE_URL}/api/admin/commissions`),
         axios.get(`${API_BASE_URL}/api/admin/vendor-earnings`),
+        axios.get(`${API_BASE_URL}/api/admin/vendor-requests`),
         axios.get(`${API_BASE_URL}/api/contact/messages`),
         axios.get(`${API_BASE_URL}/api/contact/stats`)
       ]);
       setStats(statsRes.data);
       setCommissions(commissionsRes.data.commissions);
       setVendorEarnings(earningsRes.data);
+      setVendorRequests(requestsRes.data.requests || []);
       setContactMessages(messagesRes.data.messages || []);
       setMessageStats(statsRes2.data);
       setLoading(false);
@@ -51,6 +62,37 @@ const AdminDashboard = () => {
     }
   };
 
+  const refreshVendorRequests = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/vendor-requests`);
+      setVendorRequests(res.data.requests || []);
+    } catch (error) {
+      console.error('Error fetching vendor requests:', error);
+    }
+  };
+
+  const approveVendorRequest = async (vendorId) => {
+    try {
+      await axios.put(`${API_BASE_URL}/api/admin/vendor-requests/${vendorId}/approve`);
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error approving vendor request:', error);
+      alert('Failed to approve vendor request');
+    }
+  };
+
+  const rejectVendorRequest = async (vendorId) => {
+    const notes = window.prompt('Optional rejection note');
+    if (notes === null) return;
+    try {
+      await axios.put(`${API_BASE_URL}/api/admin/vendor-requests/${vendorId}/reject`, { notes });
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error rejecting vendor request:', error);
+      alert('Failed to reject vendor request');
+    }
+  };
+
   const updateMessageStatus = async (messageId, newStatus) => {
     try {
       await axios.put(`${API_BASE_URL}/api/contact/messages/${messageId}/status`, {
@@ -58,7 +100,7 @@ const AdminDashboard = () => {
       });
       fetchMessages(selectedStatus);
       if (messageStats) {
-        const statsRes = await axios.get('http://localhost:/api/contact/stats');
+        const statsRes = await axios.get(`${API_BASE_URL}/api/contact/stats`);
         setMessageStats(statsRes.data);
       }
       if (selectedMessage && selectedMessage._id === messageId) {
@@ -100,6 +142,9 @@ const AdminDashboard = () => {
           <h1 className="page-title">
             <span className="title-icon">👨‍💼</span>
             Admin Dashboard
+            {vendorRequests.length > 0 && (
+              <span className="approval-badge">{vendorRequests.length} pending approvals</span>
+            )}
           </h1>
           <p className="dashboard-subtitle">Manage your marketplace platform</p>
         </div>
@@ -154,6 +199,53 @@ const AdminDashboard = () => {
         )}
 
         <div className="dashboard-sections">
+          <div className="section approval-section">
+            <h2 className="section-title">
+              <span className="section-icon">✅</span>
+              Pending Vendor Shop Approvals
+              <span className="section-count">{vendorRequests.length}</span>
+            </h2>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Shop Name</th>
+                    <th>Vendor</th>
+                    <th>Email</th>
+                    <th>GSTIN</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vendorRequests.length > 0 ? (
+                    vendorRequests.map(request => (
+                      <tr key={request._id}>
+                        <td>{new Date(request.approvalRequestedAt || request.createdAt).toLocaleDateString()}</td>
+                        <td>{request.shopName}</td>
+                        <td>{request.userId?.username || 'N/A'}</td>
+                        <td>{request.userId?.email || 'N/A'}</td>
+                        <td>{request.gstin || 'N/A'}</td>
+                        <td><span className="status-badge status-new">Pending</span></td>
+                        <td>
+                          <div className="action-buttons">
+                            <button className="btn-small btn-success" onClick={() => approveVendorRequest(request._id)}>Approve</button>
+                            <button className="btn-small btn-danger" onClick={() => rejectVendorRequest(request._id)}>Reject</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="no-data">No pending vendor shop approvals</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div className="section commission-section">
             <h2 className="section-title">
               <span className="section-icon">💳</span>

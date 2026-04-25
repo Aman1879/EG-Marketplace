@@ -55,6 +55,28 @@ export const useSocket = () => {
         }
       });
 
+      newSocket.on('newVendorRequest', (data) => {
+        if (user.role === 'admin') {
+          setNotifications(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            type: 'newVendorRequest',
+            message: `New vendor shop request: ${data.shopName || 'Shop request submitted'}`,
+            data
+          }]);
+        }
+      });
+
+      newSocket.on('vendorApprovalUpdate', (data) => {
+        if (user.role === 'vendor') {
+          setNotifications(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            type: 'vendorApprovalUpdate',
+            message: `Your shop approval status changed to: ${data.approvalStatus}`,
+            data
+          }]);
+        }
+      });
+
       newSocket.on('disputeUpdate', (data) => {
         setNotifications(prev => [...prev, {
           id: Date.now() + Math.random(),

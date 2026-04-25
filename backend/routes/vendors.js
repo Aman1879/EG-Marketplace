@@ -87,7 +87,11 @@ router.post('/create', authenticate, authorize('vendor'), [
   body('contactPhone')
     .optional({ checkFalsy: true })
     .trim()
-    .isLength({ max: 30 })
+    .isLength({ max: 30 }),
+  body('gstin')
+    .exists().withMessage('GSTIN is required')
+    .trim()
+    .matches(/^[0-9A-Z]{15}$/).withMessage('GSTIN must be 15 alphanumeric characters')
 ], async (req, res) => {
   try {
     console.log('=== Shop Creation Request ===');
@@ -108,7 +112,7 @@ router.post('/create', authenticate, authorize('vendor'), [
       });
     }
 
-    const { shopName, description, category, categories, country, logoUrl, bannerUrl, address, contactEmail, contactPhone } = req.body;
+    const { shopName, description, category, categories, country, logoUrl, bannerUrl, address, contactEmail, contactPhone, gstin } = req.body;
     
     // Normalize categories
     let normalizedCategories = [];
@@ -131,7 +135,13 @@ router.post('/create', authenticate, authorize('vendor'), [
       address: (address && address.trim()) || '',
       contactEmail: (contactEmail && contactEmail.trim()) || '',
       contactPhone: (contactPhone && contactPhone.trim()) || '',
-      onboardingComplete: true
+      gstin: gstin.trim().toUpperCase(),
+      onboardingComplete: false,
+      approvalStatus: 'pending',
+      approvalRequestedAt: new Date(),
+      approvalReviewedAt: null,
+      approvalReviewedBy: null,
+      approvalNotes: ''
     };
 
     console.log('Creating vendor with data:', { ...vendorData, logoUrl: vendorData.logoUrl?.substring(0, 50) + '...', bannerUrl: vendorData.bannerUrl?.substring(0, 50) + '...' });
@@ -157,8 +167,20 @@ router.post('/create', authenticate, authorize('vendor'), [
       vendor = new Vendor(vendorData);
       await vendor.save();
       console.log('Vendor created successfully:', vendor._id);
+
+        if (global.orderEventEmitter) {
+          global.orderEventEmitter.emit('vendorRequestSubmitted', {
+            vendorId: vendor._id.toString(),
+            userId: req.user._id.toString(),
+            shopName: vendor.shopName,
+            gstin: vendor.gstin,
+            approvalStatus: vendor.approvalStatus,
+            createdAt: vendor.createdAt
+          });
+        }
+
       res.json({
-        message: 'Vendor shop created',
+          message: 'Vendor shop submitted for admin approval',
         vendor
       });
     }
@@ -196,7 +218,13 @@ router.post('/create', authenticate, authorize('vendor'), [
             address: (req.body.address && req.body.address.trim()) || existingShop.address || '',
             contactEmail: (req.body.contactEmail && req.body.contactEmail.trim()) || existingShop.contactEmail || '',
             contactPhone: (req.body.contactPhone && req.body.contactPhone.trim()) || existingShop.contactPhone || '',
-            onboardingComplete: true
+            gstin: (req.body.gstin && req.body.gstin.trim().toUpperCase()) || existingShop.gstin || '',
+            onboardingComplete: existingShop.onboardingComplete,
+            approvalStatus: existingShop.approvalStatus || 'pending',
+            approvalRequestedAt: existingShop.approvalRequestedAt || new Date(),
+            approvalReviewedAt: existingShop.approvalReviewedAt || null,
+            approvalReviewedBy: existingShop.approvalReviewedBy || null,
+            approvalNotes: existingShop.approvalNotes || ''
           });
           const updated = await existingShop.save();
           return res.json({
@@ -253,6 +281,10 @@ router.post('/profile', authenticate, authorize('vendor'), [
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }).withMessage('Contact email must be valid'),
   body('contactPhone').optional({ checkFalsy: true }).trim().isLength({ max: 30 })
+  ,body('gstin')
+    .exists().withMessage('GSTIN is required')
+    .trim()
+    .matches(/^[0-9A-Z]{15}$/).withMessage('GSTIN must be 15 alphanumeric characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -260,7 +292,7 @@ router.post('/profile', authenticate, authorize('vendor'), [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { vendorId, shopName, description, category, categories, country, logoUrl, bannerUrl, address, contactEmail, contactPhone } = req.body;
+    const { vendorId, shopName, description, category, categories, country, logoUrl, bannerUrl, address, contactEmail, contactPhone, gstin } = req.body;
     let normalizedCategories = [];
     if (Array.isArray(categories) && categories.length > 0) {
       normalizedCategories = categories.map(c => String(c).trim()).filter(Boolean);
@@ -291,7 +323,16 @@ router.post('/profile', authenticate, authorize('vendor'), [
     vendor.address = address || vendor.address || '';
     vendor.contactEmail = contactEmail || vendor.contactEmail || '';
     vendor.contactPhone = contactPhone || vendor.contactPhone || '';
-    vendor.onboardingComplete = true;
+    vendor.gstin = (gstin || vendor.gstin || '').trim().toUpperCase();
+
+    if (vendor.approvalStatus !== 'approved') {
+      vendor.onboardingComplete = false;
+      vendor.approvalStatus = 'pending';
+      vendor.approvalRequestedAt = new Date();
+      vendor.approvalReviewedAt = null;
+      vendor.approvalReviewedBy = null;
+      vendor.approvalNotes = '';
+    }
 
     await vendor.save();
 

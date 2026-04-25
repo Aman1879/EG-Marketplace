@@ -19,7 +19,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password, role, shopName } = req.body;
+    const { username, email, password, role } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
@@ -38,16 +38,6 @@ router.post('/register', [
       role: role === 'vendor' || role === 'seller' ? 'vendor' : 'buyer'
     });
     await user.save();
-
-    // If vendor, create vendor profile
-    if (user.role === 'vendor' && shopName) {
-      await new Vendor({
-        userId: user._id,
-        shopName,
-        description: '',
-        onboardingComplete: true
-      }).save();
-    }
 
     // Generate token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'marketplace-secret-key-2025', { expiresIn: '7d' });
