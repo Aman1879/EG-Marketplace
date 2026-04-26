@@ -32,6 +32,30 @@ FRONTEND_URL=http://localhost:5173
 # FRONTEND_URL=https://yourdomain.com
 ```
 
+### Render Production Example
+If your frontend is hosted on Netlify/Vercel and backend is on Render, use one of these:
+```
+NODE_ENV=production
+
+MONGODB_URI=your_render_or_atlas_mongodb_uri
+JWT_SECRET=your_strong_jwt_secret
+SESSION_SECRET=your_strong_session_secret
+
+FRONTEND_URLS=https://your-frontend-domain.com,https://egmarketplace.netlify.app
+
+RAZORPAY_KEY_ID=rzp_live_or_test_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+
+ADMIN_COMMISSION_RATE=0.10
+```
+
+Important:
+- Add the exact frontend domain(s) in `FRONTEND_URLS`.
+- Do not use `CORS_ALLOW_ALL=true` in production.
+- Render will provide `PORT` automatically; do not hardcode it.
+- On the frontend host, set `VITE_API_URL` to your Render backend URL if it is not the default Render URL used in the app.
+
 ## Razorpay Payment Gateway (REQUIRED for payment flow)
 ```
 # Get these from https://dashboard.razorpay.com/app/settings/api-keys

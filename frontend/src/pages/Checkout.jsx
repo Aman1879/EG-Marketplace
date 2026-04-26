@@ -18,6 +18,8 @@ const Checkout = () => {
   });
   const [loading, setLoading] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [razorpayStatus, setRazorpayStatus] = useState('checking');
+  const [razorpayMessage, setRazorpayMessage] = useState('Checking payment gateway...');
 
   useEffect(() => {
     // Load Razorpay script
@@ -26,6 +28,24 @@ const Checkout = () => {
     script.onload = () => setRazorpayLoaded(true);
     script.onerror = () => console.error('Failed to load Razorpay');
     document.body.appendChild(script);
+
+    const checkRazorpay = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/orders/health/razorpay`);
+        if (response.data?.configured) {
+          setRazorpayStatus('ready');
+          setRazorpayMessage('Payment gateway is ready.');
+        } else {
+          setRazorpayStatus('unconfigured');
+          setRazorpayMessage('Payment gateway is not configured on the hosted server. Please contact support.');
+        }
+      } catch (error) {
+        setRazorpayStatus('error');
+        setRazorpayMessage('Unable to verify payment gateway configuration. Please try again later.');
+      }
+    };
+
+    checkRazorpay();
 
     return () => {
       if (document.body.contains(script)) {
@@ -46,6 +66,11 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (razorpayStatus === 'unconfigured') {
+      alert('Payment gateway is not configured on the hosted server. Please contact support.');
+      return;
+    }
     
     const phoneValid = /^[6-9]\d{9}$/.test(address.phone);
     const pinValid = /^\d{6}$/.test(address.pin);
@@ -141,7 +166,7 @@ const Checkout = () => {
     return (
       <div className="checkout-page">
         <div className="container">
-          <p>Loading payment gateway...</p>
+          <p>{razorpayMessage}</p>
         </div>
       </div>
     );
@@ -151,6 +176,12 @@ const Checkout = () => {
     <div className="checkout-page">
       <div className="container">
         <h1 className="page-title">Checkout</h1>
+        {razorpayStatus === 'unconfigured' && (
+          <div className="gateway-warning">
+            <strong>Payment gateway unavailable on hosting.</strong>
+            <span>{razorpayMessage}</span>
+          </div>
+        )}
         <div className="checkout-content">
           <div className="checkout-form-section">
             <form onSubmit={handleSubmit} className="checkout-form">
@@ -247,7 +278,7 @@ const Checkout = () => {
               <button
                 type="submit"
                 className="btn btn-primary btn-large"
-                disabled={loading}
+                disabled={loading || !razorpayLoaded || razorpayStatus === 'unconfigured'}
               >
                 {loading ? 'Processing...' : 'Proceed to Payment'}
               </button>

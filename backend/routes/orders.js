@@ -19,6 +19,17 @@ function toPaise(value) {
   return Math.round(Number(value || 0) * 100);
 }
 
+// Public health check for Razorpay configuration
+router.get('/health/razorpay', async (req, res) => {
+  res.json({
+    configured: hasRazorpayCredentials,
+    publicKey: hasRazorpayCredentials ? razorpayKeyId : '',
+    message: hasRazorpayCredentials
+      ? 'Razorpay is configured'
+      : 'Razorpay credentials are missing on the server'
+  });
+});
+
 async function buildOrderPayload(products) {
   let totalAmount = 0;
   const orderProducts = [];
