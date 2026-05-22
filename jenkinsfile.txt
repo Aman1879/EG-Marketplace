@@ -1,0 +1,21 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/Aman1879/Zenvia.git'
+            }
+        }
+
+        stage('Deploy Website') {
+            steps {
+                sh '''
+                sudo rm -rf /var/www/html/*
+                sudo cp -r * /var/www/html/
+                '''
+            }
+        }
+    }
+}
