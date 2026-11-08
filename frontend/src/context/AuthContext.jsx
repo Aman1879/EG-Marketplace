@@ -150,10 +150,17 @@ export const AuthProvider = ({ children }) => {
         resendCooldown: response.data?.resendCooldown || 60
       };
     } catch (error) {
+      const data = error.response?.data;
+      let errorMsg = data?.message || 'Failed to send verification code. Please try again.';
+      if (data?.diagnosticHint) {
+        errorMsg += ` (${data.diagnosticHint})`;
+      }
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to send verification code. Please try again.',
-        retryAfter: error.response?.data?.retryAfter || null
+        message: errorMsg,
+        errorCategory: data?.errorCategory,
+        requestId: data?.requestId,
+        retryAfter: data?.retryAfter || null
       };
     }
   };

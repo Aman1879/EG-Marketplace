@@ -9,7 +9,7 @@ const Vendor = require('../models/Vendor');
 const EmailOtp = require('../models/EmailOtp');
 const { authenticate } = require('../middleware/auth');
 const { recordAuditLog } = require('../utils/auditLogger');
-const { sendOtpEmail } = require('../utils/emailService');
+const { sendOtpEmail, categorizeEmailError } = require('../utils/emailService');
 const { otpLimiter } = require('../middleware/security');
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -74,13 +74,29 @@ router.post('/send-otp', otpLimiter, [
       updateData.testPlainOtp = otp;
     }
 
+    const requestId = crypto.randomUUID();
+
     // Attempt email delivery first; do not persist OTP if provider rejects delivery
     try {
       await sendOtpEmail(normalizedEmail, otp);
     } catch (deliveryError) {
-      console.error(`[Auth] Email delivery rejected for ${normalizedEmail}: ${deliveryError.message}`);
+      const errorCategory = deliveryError.category || categorizeEmailError(deliveryError);
+
+      // Safe diagnostic logging: NEVER log passwords, OTPs, or auth tokens
+      console.error(`[Auth][reqId:${requestId}] OTP email delivery failed for ${normalizedEmail} [category:${errorCategory} code:${deliveryError.code || 'N/A'}]: ${deliveryError.message}`);
+
       return res.status(502).json({
-        message: 'Failed to deliver verification email. The email provider rejected delivery. Please verify your email address or try again later.'
+        success: false,
+        requestId,
+        errorCategory,
+        message: 'Failed to deliver verification email. The email provider rejected delivery. Please verify your email address or try again later.',
+        diagnosticHint: errorCategory === 'SMTP_CONNECTION_TIMEOUT'
+          ? 'Outbound SMTP port connection timed out. Free cloud instances may restrict outbound ports 465/587.'
+          : errorCategory === 'SMTP_NOT_CONFIGURED'
+          ? 'Email delivery service credentials are not configured in environment variables.'
+          : errorCategory === 'SMTP_AUTH_FAILED'
+          ? 'SMTP authentication was rejected by the email provider.'
+          : undefined
       });
     }
 

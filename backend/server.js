@@ -57,6 +57,7 @@ const httpServer = http.createServer(app);
 // Middleware
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://egmarketplace.netlify.app',
+  'https://eg-marketplace.netlify.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ];
@@ -388,8 +389,8 @@ if (!fs.existsSync(logsDir)) {
 // Start server
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
-  httpServer.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT} (bound to 0.0.0.0)`);
   });
 }
 

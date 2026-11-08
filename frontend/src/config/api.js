@@ -1,9 +1,12 @@
 // API Configuration
 // Use environment variables in production, fallback to localhost for development
 
-const API_BASE_URL =
+const rawApiUrl =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3000' : 'https://eg-marketplace-1.onrender.com');
+
+// Normalize API base URL: strip trailing slashes and trailing /api so endpoints with `/api/...` never double-prefix
+const API_BASE_URL = rawApiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_BASE_URL;
 

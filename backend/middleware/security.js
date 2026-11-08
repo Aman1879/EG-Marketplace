@@ -9,6 +9,7 @@
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://egmarketplace.netlify.app',
+  'https://eg-marketplace.netlify.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ];

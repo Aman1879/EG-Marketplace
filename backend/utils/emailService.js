@@ -206,6 +206,30 @@ The ${brand} Team`;
 }
 
 /**
+ * Categorizes an email error into a standard safe diagnostic classification.
+ */
+function categorizeEmailError(err) {
+  if (!err) return 'UNKNOWN_ERROR';
+  const msg = (err.message || '').toLowerCase();
+  const code = (err.code || '').toUpperCase();
+
+  if (msg.includes('not configured')) return 'SMTP_NOT_CONFIGURED';
+  if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT' || msg.includes('timeout') || msg.includes('greeting timeout')) {
+    return 'SMTP_CONNECTION_TIMEOUT';
+  }
+  if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EHOSTUNREACH') {
+    return 'SMTP_HOST_UNREACHABLE';
+  }
+  if (code === 'EAUTH' || err.responseCode === 535 || msg.includes('invalid login') || msg.includes('badcredentials') || msg.includes('username and password not accepted')) {
+    return 'SMTP_AUTH_FAILED';
+  }
+  if (code === 'EENVELOPE' || err.responseCode === 550 || msg.includes('recipient rejected')) {
+    return 'SMTP_RECIPIENT_REJECTED';
+  }
+  return 'SMTP_DELIVERY_FAILED';
+}
+
+/**
  * Sends a 6-digit OTP verification code to the target recipient.
  * @param {string} email - Normalized recipient email
  * @param {string} otp - 6-digit OTP
@@ -227,7 +251,10 @@ async function sendOtpEmail(email, otp) {
   if (!transporter) {
     if (process.env.NODE_ENV === 'production') {
       console.error('[EmailService] SMTP credentials are not configured in production environment.');
-      throw new Error('Email service is not configured. Please contact platform administration.');
+      const err = new Error('Email service is not configured. Please contact platform administration.');
+      err.category = 'SMTP_NOT_CONFIGURED';
+      err.code = 'ENOCONFIG';
+      throw err;
     }
 
     // In local development or test mode, record simulated delivery
@@ -253,8 +280,13 @@ async function sendOtpEmail(email, otp) {
     const info = await transporter.sendMail(mailOptions);
     return { delivered: true, messageId: info.messageId };
   } catch (err) {
-    console.error(`[EmailService] Delivery failed to ${normalizedEmail}: ${err.message}`);
-    throw new Error(`Email delivery failed: ${err.message}`);
+    const category = categorizeEmailError(err);
+    console.error(`[EmailService] Delivery failed to ${normalizedEmail} [${category} / ${err.code || 'N/A'}]: ${err.message}`);
+    const wrappedError = new Error(`Email delivery failed: ${err.message}`);
+    wrappedError.category = category;
+    wrappedError.code = err.code;
+    wrappedError.responseCode = err.responseCode;
+    throw wrappedError;
   }
 }
 
@@ -282,6 +314,7 @@ module.exports = {
   getSenderAddress,
   verifySmtpConnection,
   createTransporter,
+  categorizeEmailError,
   sendOtpEmail,
   getOtpHtmlTemplate,
   getOtpPlaintext,
