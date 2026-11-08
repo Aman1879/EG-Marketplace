@@ -84,7 +84,10 @@ const BuyerDashboard = () => {
         <div className="hero-overlay">
           <div className="hero-glass">
             <div className="hero-top-nav">
-              <div className="hero-logo">Eg Marketplace</div>
+              <div className="hero-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/logo-icon.png" alt="SpotBazar" style={{ width: '28px', height: '32px', objectFit: 'contain' }} />
+                <span>SpotBazar</span>
+              </div>
               <div className="hero-links">
                 <a href="#categories">Categories</a>
                 <a href="#deals">Deals</a>

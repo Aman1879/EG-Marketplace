@@ -117,7 +117,7 @@ const Home = () => {
 
       <section className="featured-products">
         <div className="container">
-          <h2 className="section-title">Eg Marketplace Picks</h2>
+          <h2 className="section-title">SpotBazar Picks</h2>
           <div className="marketplace-grid">
             <div className="marketplace-card">
               <h3>Featured Shops</h3>

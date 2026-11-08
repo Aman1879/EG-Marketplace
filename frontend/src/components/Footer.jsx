@@ -48,7 +48,7 @@ const Footer = () => {
         </div>
         
         <div className="footer-bottom">
-          <p>&copy; 2025 Eg Marketplace. All rights reserved.</p>
+          <p>&copy; 2025 SpotBazar. All rights reserved.</p>
           <div className="footer-links">
             <Link to="/">Terms of Use</Link>
             <Link to="/">Privacy Policy</Link>

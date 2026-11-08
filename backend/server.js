@@ -36,6 +36,7 @@ const {
   sanitizeNoSql,
   authLimiter,
   contactLimiter,
+  otpLimiter,
   sanitizeLogUrl,
   isAllowedOrigin
 } = require('./middleware/security');
@@ -194,12 +195,13 @@ app.get(['/health', '/api/health'], (req, res) => {
 
 // Basic HTTP root route
 app.get('/', (req, res) => {
-  res.send('Welcome to Eg Marketplace API');
+  res.send('Welcome to SpotBazar API');
 });
 
 // Routes
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/send-otp', otpLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);

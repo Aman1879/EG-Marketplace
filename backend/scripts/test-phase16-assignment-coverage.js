@@ -28,6 +28,7 @@ const User = require('../models/User');
 const Vendor = require('../models/Vendor');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const EmailOtp = require('../models/EmailOtp');
 const Address = require('../models/Address');
 const CartItem = require('../models/CartItem');
 const Rating = require('../models/Rating');
@@ -146,13 +147,21 @@ async function runPhase16CoverageSuite() {
     const regEmail = `p16_reg_${testTimestamp}@test.com`;
     const regUsername = `p16_reg_${testTimestamp}`;
 
-    // 1.1 Positive Registration
+    // 1.1 Positive Registration (with Email OTP)
+    await request('POST', '/api/auth/send-otp', {
+      headers: { 'x-test-request': 'true' },
+      body: { email: regEmail }
+    });
+    const regOtpDoc = await EmailOtp.findOne({ email: regEmail });
+    const regOtp = regOtpDoc?.testPlainOtp;
+
     const regRes = await request('POST', '/api/auth/register', {
       body: {
         username: regUsername,
         email: regEmail,
         password: 'Password@123',
-        role: 'buyer'
+        role: 'buyer',
+        otp: regOtp
       }
     });
     assert(regRes.status === 201, '1.1 Positive registration returns 201 Created');

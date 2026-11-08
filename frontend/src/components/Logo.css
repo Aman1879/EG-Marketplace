@@ -1,7 +1,7 @@
 .logo-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
   color: inherit;
 }
@@ -13,50 +13,50 @@
   flex-shrink: 0;
 }
 
-.logo-icon svg {
+.logo-img {
   display: block;
-  transform-origin: center;
-  transition: transform 0.35s ease;
+  object-fit: contain;
+  transition: transform 0.3s ease;
 }
 
-.logo-container:hover .logo-icon svg {
-  transform: rotateY(180deg);
+.logo-container:hover .logo-img {
+  transform: scale(1.08);
 }
 
-.logo-eg {
-  opacity: 1;
-  transform: none;
-  transform-origin: center;
+.logo-small .logo-img {
+  width: 32px;
+  height: 36px;
 }
 
-
-.logo-small .logo-icon svg {
+.logo-medium .logo-img {
   width: 40px;
-  height: 46px;
+  height: 45px;
 }
 
-.logo-medium .logo-icon svg {
-  width: 50px;
-  height: 58px;
-}
-
-.logo-large .logo-icon svg {
-  width: 60px;
-  height: 70px;
+.logo-large .logo-img {
+  width: 54px;
+  height: 61px;
 }
 
 .logo-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
-.logo-text-line1,
-.logo-text-line2 {
-  font-weight: bold;
+.logo-text-line1 {
+  font-weight: 800;
   font-size: 18px;
-  color: #4A5568;
-  font-family: Arial, sans-serif;
+  color: #ff6b35;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.logo-text-line2 {
+  font-weight: 800;
+  font-size: 18px;
+  color: #2d3748;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: 0.5px;
 }
 
@@ -72,7 +72,7 @@
 
 .logo-small .logo-text-line1,
 .logo-small .logo-text-line2 {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 @media (max-width: 768px) {
@@ -80,4 +80,3 @@
     display: none;
   }
 }
-

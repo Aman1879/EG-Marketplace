@@ -17,8 +17,10 @@
 const assert = require('assert');
 const http = require('http');
 const jwt = require('jsonwebtoken');
+const path = require('path');
 const mongoose = require('mongoose');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const EmailOtp = require('../models/EmailOtp');
 
 const {
   securityHeaders,
@@ -110,11 +112,27 @@ async function runTests() {
   // Helper to create test user via API
   async function createApiUser(role = 'buyer') {
     const timestamp = Date.now();
+    const email = `sec_${role}_${timestamp}@test.com`;
+
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(process.env.MONGODB_URI);
+    }
+
+    // Send OTP first
+    await makeRequest('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'x-test-request': 'true' }
+    }, { email });
+
+    const otpDoc = await EmailOtp.findOne({ email });
+    const otp = otpDoc?.testPlainOtp;
+
     const userPayload = {
       username: `sec_${role}_${timestamp}`,
-      email: `sec_${role}_${timestamp}@test.com`,
+      email,
       password: 'SecPassword123!',
-      role
+      role,
+      otp
     };
 
     const res = await makeRequest('/api/auth/register', { method: 'POST' }, userPayload);

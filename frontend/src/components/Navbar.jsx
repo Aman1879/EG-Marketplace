@@ -45,7 +45,7 @@ const Navbar = () => {
   return (
     <nav className="navbar" aria-label="Main Navigation">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo" aria-label="EG Marketplace Home">
+        <Link to="/" className="navbar-logo" aria-label="SpotBazar Home">
           <Logo showText={true} size="medium" />
         </Link>
 

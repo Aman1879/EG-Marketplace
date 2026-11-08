@@ -23,6 +23,7 @@ const Commission = require('../models/Commission');
 const Dispute = require('../models/Dispute');
 const Rating = require('../models/Rating');
 const ContactMessage = require('../models/ContactMessage');
+const EmailOtp = require('../models/EmailOtp');
 
 const ALL_MODELS = [
   { name: 'User', model: User },
@@ -36,7 +37,8 @@ const ALL_MODELS = [
   { name: 'Commission', model: Commission },
   { name: 'Dispute', model: Dispute },
   { name: 'Rating', model: Rating },
-  { name: 'ContactMessage', model: ContactMessage }
+  { name: 'ContactMessage', model: ContactMessage },
+  { name: 'EmailOtp', model: EmailOtp }
 ];
 
 /**

@@ -218,7 +218,7 @@ EG-Marketplace/
 
 ## 5. Database Schema & Entity Relationship Diagram (ERD)
 
-The database schema is constructed from **12 actual Mongoose models** located in `backend/models/`. Every field, type, index, and relationship documented below maps 1:1 to production code.
+The database schema is constructed from **13 actual Mongoose models** located in `backend/models/`. Every field, type, index, and relationship documented below maps 1:1 to production code.
 
 ### Database ER Diagram
 
@@ -410,6 +410,19 @@ erDiagram
         Date repliedAt
         Date createdAt
     }
+
+    EMAIL_OTP {
+        ObjectId _id PK
+        String email UK
+        String otpHash
+        Number attempts "max 5"
+        Date expiresAt "TTL index"
+        Date resendAvailableAt "60s cooldown"
+        Boolean verified
+        Date verifiedAt
+        String verificationToken
+        Date createdAt
+    }
 ```
 
 ---
@@ -450,6 +463,16 @@ erDiagram
 ### 6.6 Audit Logging & Private Scoped Notifications
 - **Audit Trail:** [`backend/utils/auditLogger.js`](file:///c:/Users/Asus/Desktop/EG-Marketplace-main/backend/utils/auditLogger.js) writes immutable audit records to the `AuditLog` collection for user account updates, product creation/edits, inventory changes, order status updates, and refunds.
 - **Private Socket.IO Scopes:** Sockets join private authenticated rooms (`user:<userId>`, `vendor:<vendorId>`, and `admin`). Global public broadcasts are never used for private order or customer data.
+
+### 6.7 Email OTP Verification Before Registration
+- **Pre-Registration Identity Verification:** User registration requires successful verification of a 6-digit one-time password sent to the applicant's normalized email address. Direct API requests attempting to register without email verification are strictly rejected with HTTP 400.
+- **Cryptographic OTP Generation & Bcrypt Hashing:** OTPs are generated using Node's cryptographically secure pseudo-random number generator (`crypto.randomInt(100000, 1000000)`). Plaintext OTPs are never stored in the database; only bcrypt hashes (`$2a$10$...`) are persisted in the `EmailOtp` collection.
+- **5-Minute Expiration & TTL Index:** OTP records specify `expiresAt = Date.now() + 5*60*1000`. MongoDB's TTL index (`{ expireAfterSeconds: 0 }`) automatically purges stale records.
+- **Brute-Force & Replay Defenses:**
+  - **Attempt Limit:** Maximum 5 verification attempts permitted per OTP cycle. A 5th failed attempt invalidates the OTP and returns HTTP 429.
+  - **Resend Cooldown:** 60-second minimum cooldown enforced between OTP requests to prevent spam.
+  - **Single-Use Invalidation:** Upon successful user creation, the OTP document is consumed and deleted immediately, preventing replay attacks.
+- **Configurable SMTP Transporter:** Utilizes Nodemailer with support for Gmail (App Passwords), Mailtrap, SendGrid, Amazon SES, Brevo, or Outlook via standard environment variables (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`).
 
 ---
 

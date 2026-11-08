@@ -6,9 +6,9 @@ const AuthPromoPanel = ({ mode = 'login' }) => {
   return (
     <div className="auth-promo-panel">
       <div className="auth-promo-top">
-        <Link to="/" className="auth-brand-badge" aria-label="Return to EG Marketplace Home">
-          <span className="brand-logo-icon" aria-hidden="true">🛍️</span>
-          <span className="brand-name">EG Marketplace</span>
+        <Link to="/" className="auth-brand-badge" aria-label="Return to SpotBazar Home">
+          <img src="/logo-icon.png" alt="SpotBazar" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+          <span className="brand-name">SpotBazar</span>
         </Link>
 
         <h2 className="auth-promo-title">
@@ -65,7 +65,7 @@ const AuthPromoPanel = ({ mode = 'login' }) => {
             fontWeight="900"
             fontFamily="Arial, sans-serif"
           >
-            EG
+            SB
           </text>
           
           {/* Floating Pill Badge 1: 5-Star Rating */}

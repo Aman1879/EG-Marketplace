@@ -141,6 +141,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const sendOtp = async (email) => {
+    try {
+      const response = await axios.post(`${API_ENDPOINTS.AUTH}/send-otp`, { email });
+      return {
+        success: true,
+        message: response.data?.message || 'Verification code sent to your email.',
+        resendCooldown: response.data?.resendCooldown || 60
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to send verification code. Please try again.',
+        retryAfter: error.response?.data?.retryAfter || null
+      };
+    }
+  };
+
+  const verifyOtp = async (email, otp) => {
+    try {
+      const response = await axios.post(`${API_ENDPOINTS.AUTH}/verify-otp`, { email, otp });
+      return {
+        success: true,
+        message: response.data?.message || 'Email verified successfully.',
+        verificationToken: response.data?.verificationToken
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to verify code.',
+        remainingAttempts: error.response?.data?.remainingAttempts
+      };
+    }
+  };
+
   const register = async (userData) => {
     try {
       const response = await axios.post(`${API_ENDPOINTS.AUTH}/register`, userData);
@@ -229,6 +263,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    sendOtp,
+    verifyOtp,
     logout,
     cart,
     cartSummary,

@@ -55,13 +55,18 @@ npm run dev
 2. Notice the modern two-column layout:
    - Left promotional panel with EG Marketplace branding and shopping benefits.
    - Right form with input fields: Username, Email, Role selection (`Buyer`), Password, Confirm Password.
-3. Register a new buyer account:
+3. Fill in registration details:
    - **Username:** `rahul_sharma`
    - **Email:** `rahul@example.com`
    - **Role:** Select `Buyer`
    - **Password:** `Password123!`
-4. Click **Create Account**. You will be automatically redirected to the homepage with active login session cookies and JWT in `localStorage`.
-5. Test the password visibility toggle (eye icon) on the `/login` page to demonstrate password show/hide functionality.
+4. Click **Send OTP**. Observe:
+   - Button shows `Sending...` then transitions to a 60-second cooldown (`Resend in 60s`).
+   - The **Enter 6-Digit OTP** field smoothly appears with auto-focus.
+   - Success banner indicates verification code dispatched.
+5. Enter the 6-digit OTP received via email and click **Verify & Register**.
+6. The user account is created upon verification, followed by automatic redirection to the login page.
+7. Test the password visibility toggle (eye icon) on the `/login` page to demonstrate password show/hide functionality.
 
 #### Step 2: Browsing, Searching & Filtering
 1. On the Homepage (`/`), observe the banner carousel, category cards (Electronics, Fashion, Home & Living, etc.), and featured shops.

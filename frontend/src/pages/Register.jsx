@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthPromoPanel from '../components/AuthPromoPanel';
@@ -12,11 +12,31 @@ const Register = () => {
     password: '',
     role: 'buyer'
   });
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+
+  const otpInputRef = useRef(null);
+  const { register, sendOtp } = useAuth();
   const navigate = useNavigate();
+
+  // Resend cooldown countdown interval
+  useEffect(() => {
+    let interval = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => (prev > 1 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
 
   const handleChange = (e) => {
     setFormData({
@@ -32,28 +52,99 @@ const Register = () => {
     }));
   };
 
+  const handleSendOtp = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setInfoMessage('');
+
+    const emailTrimmed = formData.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailTrimmed || !emailRegex.test(emailTrimmed)) {
+      setError('Please enter a valid email address before requesting a verification code.');
+      return;
+    }
+
+    setSendingOtp(true);
+
+    try {
+      const res = await sendOtp(emailTrimmed);
+      setSendingOtp(false);
+
+      if (res.success) {
+        setOtpSent(true);
+        setResendTimer(res.resendCooldown || 60);
+        setInfoMessage(res.message || 'Verification code sent to your email. Please enter the 6-digit code below.');
+        setTimeout(() => {
+          if (otpInputRef.current) {
+            otpInputRef.current.focus();
+          }
+        }, 150);
+      } else {
+        setError(res.message || 'Failed to send verification code. Please try again.');
+        if (res.retryAfter) {
+          setResendTimer(res.retryAfter);
+        }
+      }
+    } catch (err) {
+      setSendingOtp(false);
+      setError('An unexpected error occurred while requesting OTP. Please try again.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfoMessage('');
 
     if (formData.username.trim().length < 3) {
       setError('Username must be at least 3 characters');
       return;
     }
+
+    const emailTrimmed = formData.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailTrimmed || !emailRegex.test(emailTrimmed)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!otpSent) {
+      setError('Please click "Send OTP" to verify your email address before registering.');
+      return;
+    }
+
+    const otpTrimmed = otp.trim();
+    if (!otpTrimmed || otpTrimmed.length !== 6 || !/^\d{6}$/.test(otpTrimmed)) {
+      setError('Please enter the 6-digit numeric verification code sent to your email.');
+      if (otpInputRef.current) otpInputRef.current.focus();
       return;
     }
 
     setLoading(true);
 
     try {
-      const result = await register(formData);
+      const result = await register({
+        username: formData.username.trim(),
+        email: emailTrimmed,
+        password: formData.password,
+        role: formData.role,
+        otp: otpTrimmed
+      });
       setLoading(false);
+
       if (result.success) {
-        navigate('/login');
+        setInfoMessage('Account created and verified successfully! Redirecting to login...');
+        setTimeout(() => {
+          navigate('/login', { state: { registeredEmail: emailTrimmed } });
+        }, 1400);
       } else {
-        setError(result.message || 'Registration failed. Please check your details.');
+        setError(result.message || 'Registration failed. Please check your details and verification code.');
       }
     } catch (err) {
       setLoading(false);
@@ -72,7 +163,7 @@ const Register = () => {
           <div className="auth-header">
             <h1 className="auth-title">Create an Account</h1>
             <p className="auth-subtitle">
-              Join EG Marketplace to buy unique handcrafted goods or sell to customers across India.
+              Join SpotBazar to buy unique handcrafted goods or sell to customers across India.
             </p>
           </div>
 
@@ -83,7 +174,14 @@ const Register = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          {infoMessage && (
+            <div className="auth-success-banner" role="status">
+              <span className="auth-success-icon" aria-hidden="true">✅</span>
+              <span>{infoMessage}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className="form-group">
               <label htmlFor="register-username">Username *</label>
               <input
@@ -97,23 +195,87 @@ const Register = () => {
                 autoComplete="username"
                 required
                 minLength={3}
+                disabled={loading}
               />
             </div>
 
             <div className="form-group">
               <label htmlFor="register-email">Email Address *</label>
-              <input
-                id="register-email"
-                type="email"
-                name="email"
-                className="auth-input"
-                placeholder="e.g., name@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                autoComplete="email"
-                required
-              />
+              <div className="email-input-wrapper">
+                <input
+                  id="register-email"
+                  type="email"
+                  name="email"
+                  className="auth-input"
+                  placeholder="e.g., name@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  autoComplete="email"
+                  required
+                  disabled={loading || sendingOtp}
+                />
+                <button
+                  type="button"
+                  className="btn-send-otp"
+                  onClick={handleSendOtp}
+                  disabled={sendingOtp || resendTimer > 0 || !formData.email.trim() || loading}
+                  aria-label={otpSent ? 'Resend verification code' : 'Send verification code to email'}
+                >
+                  {sendingOtp
+                    ? 'Sending...'
+                    : resendTimer > 0
+                    ? `Resend in ${resendTimer}s`
+                    : otpSent
+                    ? 'Resend OTP'
+                    : 'Send OTP'}
+                </button>
+              </div>
             </div>
+
+            {/* Display OTP input box when OTP has been sent */}
+            {otpSent && (
+              <div className="otp-verification-card" role="region" aria-label="Email verification code section">
+                <div className="form-group">
+                  <div className="otp-header-row">
+                    <label htmlFor="register-otp">Enter 6-Digit OTP *</label>
+                    {resendTimer > 0 && (
+                      <span className="otp-countdown-badge" aria-live="polite">
+                        Resend in {resendTimer}s
+                      </span>
+                    )}
+                  </div>
+                  <div className="otp-input-container">
+                    <input
+                      ref={otpInputRef}
+                      id="register-otp"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      className="auth-input otp-code-input"
+                      placeholder="••••••"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      required
+                      autoComplete="one-time-code"
+                      aria-describedby="otp-help-text"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="otp-help-row">
+                    <span id="otp-help-text">Valid for 5 minutes. Check inbox/spam.</span>
+                    <button
+                      type="button"
+                      className="otp-resend-btn"
+                      onClick={handleSendOtp}
+                      disabled={resendTimer > 0 || sendingOtp || loading}
+                    >
+                      {resendTimer > 0 ? `Resend (${resendTimer}s)` : 'Resend Code'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="register-password">Password (min 6 characters) *</label>
@@ -129,6 +291,7 @@ const Register = () => {
                   autoComplete="new-password"
                   required
                   minLength={6}
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -182,6 +345,7 @@ const Register = () => {
                   aria-checked={formData.role === 'buyer'}
                   className={`role-card-btn ${formData.role === 'buyer' ? 'active' : ''}`}
                   onClick={() => handleRoleSelect('buyer')}
+                  disabled={loading}
                 >
                   <span className="role-card-icon" aria-hidden="true">🛍️</span>
                   <div className="role-card-info">
@@ -196,6 +360,7 @@ const Register = () => {
                   aria-checked={formData.role === 'vendor'}
                   className={`role-card-btn ${formData.role === 'vendor' ? 'active' : ''}`}
                   onClick={() => handleRoleSelect('vendor')}
+                  disabled={loading}
                 >
                   <span className="role-card-icon" aria-hidden="true">🏪</span>
                   <div className="role-card-info">
@@ -232,10 +397,14 @@ const Register = () => {
             <button
               type="submit"
               className="btn-auth-submit"
-              disabled={loading}
-              aria-label="Create your account"
+              disabled={loading || sendingOtp}
+              aria-label={otpSent ? 'Verify and register account' : 'Verify email and register'}
             >
-              {loading ? 'Creating Account...' : 'Register Account'}
+              {loading
+                ? 'Verifying & Registering...'
+                : otpSent
+                ? 'Verify & Register'
+                : 'Send OTP & Register'}
             </button>
           </form>
 

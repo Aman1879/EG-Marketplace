@@ -181,6 +181,13 @@ const contactLimiter = createRateLimiter({
   message: 'Too many inquiries submitted. Please try again later.'
 });
 
+// 15 OTP requests per 15 minutes per IP to prevent spam / enumeration abuse
+const otpLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: 'Too many verification code requests from this IP. Please try again after 15 minutes.'
+});
+
 /**
  * Validates that an image URL string uses safe protocols (http, https)
  * or a valid base64 data-URI for supported raster image formats (jpeg, jpg, png, webp, gif).
@@ -245,6 +252,7 @@ module.exports = {
   createRateLimiter,
   authLimiter,
   contactLimiter,
+  otpLimiter,
   isValidImageUrl,
   sanitizeLogUrl,
   isAllowedOrigin,

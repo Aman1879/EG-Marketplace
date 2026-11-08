@@ -89,19 +89,94 @@ Consistent across all routes without leaking stack traces or internal secrets:
 
 ## 4. Authentication Endpoints (`/api/auth`)
 
-### 4.1 Register User
-- **Method / Path:** `POST /api/auth/register`
-- **Auth:** Public
+### 4.1 Send Email OTP (Registration)
+- **Method / Path:** `POST /api/auth/send-otp`
+- **Auth:** Public (Rate-limited: 15 requests / 15 mins per IP, 60s cooldown per email)
 - **Request Body:**
+  ```json
+  {
+    "email": "rahul@example.com"
+  }
+  ```
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "message": "Verification code sent to your email address.",
+    "expiresIn": 300,
+    "resendCooldown": 60
+  }
+  ```
+- **Response `400 Bad Request` (Account already exists):**
+  ```json
+  {
+    "message": "An account with this email address already exists. Please log in."
+  }
+  ```
+- **Response `429 Too Many Requests` (Resend cooldown active):**
+  ```json
+  {
+    "message": "Please wait 48 seconds before requesting a new verification code.",
+    "retryAfter": 48
+  }
+  ```
+
+### 4.2 Verify Email OTP (Standalone / Token Issue)
+- **Method / Path:** `POST /api/auth/verify-otp`
+- **Auth:** Public (Max 5 attempts allowed)
+- **Request Body:**
+  ```json
+  {
+    "email": "rahul@example.com",
+    "otp": "481923"
+  }
+  ```
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "message": "Email verified successfully.",
+    "verificationToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+- **Response `400 Bad Request` (Incorrect OTP):**
+  ```json
+  {
+    "message": "Invalid verification code. 4 attempts remaining.",
+    "remainingAttempts": 4
+  }
+  ```
+- **Response `429 Too Many Requests` (Lockout after 5 failed attempts):**
+  ```json
+  {
+    "message": "Maximum verification attempts exceeded. Please request a new verification code."
+  }
+  ```
+
+### 4.3 Register User
+- **Method / Path:** `POST /api/auth/register`
+- **Auth:** Public (Requires valid `otp` or `verificationToken`)
+- **Request Body (Direct OTP Submission):**
   ```json
   {
     "username": "rahul_buyer",
     "email": "rahul@example.com",
     "password": "Password@123",
-    "role": "buyer"
+    "role": "buyer",
+    "otp": "481923"
   }
   ```
-  *(Note: `role` defaults to `buyer`; client cannot self-assign `admin` role).*
+- **Request Body (Pre-Verified Token Submission):**
+  ```json
+  {
+    "username": "rahul_buyer",
+    "email": "rahul@example.com",
+    "password": "Password@123",
+    "role": "buyer",
+    "verificationToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+  *(Note: `role` defaults to `buyer`; client cannot self-assign `admin` role. OTP or token is strictly consumed and deleted upon account creation).*
 - **Response `201 Created`:**
   ```json
   {
@@ -115,8 +190,14 @@ Consistent across all routes without leaking stack traces or internal secrets:
     }
   }
   ```
+- **Response `400 Bad Request` (Bypass Attempt):**
+  ```json
+  {
+    "message": "Email verification is required before registration. Please verify your email with the OTP."
+  }
+  ```
 
-### 4.2 Login
+### 4.4 Login
 - **Method / Path:** `POST /api/auth/login`
 - **Auth:** Public
 - **Request Body:**

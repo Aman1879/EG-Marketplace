@@ -14,6 +14,8 @@
     "test:phase15": "node scripts/test-phase15-api-validation.js",
     "test:phase16": "node scripts/test-phase16-assignment-coverage.js",
     "test:phase19": "node scripts/test-phase19-deployment.js",
+    "test:otp": "node scripts/test-email-otp.js",
+    "test:smtp": "node scripts/test-smtp-delivery.js",
     "test:security": "node scripts/test-socket-security.js",
     "test:inventory": "node scripts/test-inventory.js",
     "test:concurrency": "node scripts/test-concurrency-recovery.js",
@@ -46,6 +48,7 @@
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
+    "nodemailer": "^10.4.0",
     "razorpay": "^2.9.6",
     "socket.io": "^4.6.1"
   }

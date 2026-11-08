@@ -72,6 +72,35 @@ cd backend
 npm install
 ```
 
+#### Email Service & SMTP Configuration (Email OTP Verification Before Registration)
+EG Marketplace enforces email OTP verification before creating user accounts. To send real verification emails, configure your SMTP credentials in `backend/.env` (refer to `backend/.env.example`):
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_16_character_app_password
+EMAIL_FROM="EG-Marketplace" <no-reply@egmarketplace.com>
+```
+
+#### Test Email Delivery:
+Run the verification script to test actual SMTP delivery and check your inbox:
+```bash
+# Inside backend directory:
+npm run test:smtp                      # Sends test OTP to configured ADMIN_EMAIL
+npm run test:smtp user@example.com      # Or specify a custom test recipient
+```
+
+> [!NOTE]
+> - **Sender Display Name:** The sender display name is always `EG-Marketplace` and uses the address configured in `EMAIL_FROM` or `SMTP_USER`.
+> - **Email Subject:** `Verify Your Email - EG-Marketplace`.
+> - **Delivery Verification:** If the mail provider rejects delivery, the OTP is not persisted and cooldown is not started.
+> - **Gmail Users:** Generate an **App Password** via Google Account -> Security -> 2-Step Verification -> App Passwords. Do not use your primary Google account password.
+> - **Other Providers:** Mailtrap, SendGrid, Amazon SES, Brevo, or Outlook SMTP can be used with their respective host and port (587 or 465).
+> - **Security Hardening:** OTPs are 6-digit random codes generated via cryptographically secure RNG (`crypto.randomInt`), hashed with `bcryptjs` before storage, expire after 5 minutes, enforce a 60-second resend cooldown, lock out after 5 failed attempts, and are immediately deleted upon registration to prevent replay attacks.
+
+
 ### 3. Frontend Setup
 
 ```bash

@@ -6,7 +6,7 @@ const OurStory = () => {
       <div className="story-hero">
         <div className="container">
           <h1 className="story-hero-title">Our Story</h1>
-          <p className="story-hero-subtitle">Welcome to Eg MarketPlace</p>
+          <p className="story-hero-subtitle">Welcome to SpotBazar</p>
         </div>
       </div>
 
@@ -14,7 +14,7 @@ const OurStory = () => {
         <div className="story-content">
           <section className="story-section intro">
             <p className="story-intro-text">
-              Welcome to <strong>Eg MarketPlace</strong>, a platform built with one simple but powerful mission:
+              Welcome to <strong>SpotBazar</strong>, a platform built with one simple but powerful mission:
             </p>
             <p className="story-highlight">
               to connect Indian buyers and sellers through a seamless, trustworthy, and modern digital marketplace.
@@ -29,12 +29,12 @@ const OurStory = () => {
               At the same time, Indian buyers were searching for a clean, organized, and reliable place to explore categories, discover unique items, and enjoy a smooth shopping experience without confusion or complications.
             </p>
             <p className="story-callout">
-              <strong>Eg MarketPlace was created to bridge that gap.</strong>
+              <strong>SpotBazar was created to bridge that gap.</strong>
             </p>
           </section>
 
           <section className="story-section">
-            <h2 className="story-heading">The Beginning of Eg MarketPlace</h2>
+            <h2 className="story-heading">The Beginning of SpotBazar</h2>
             <p>
               As we observed online shopping trends, a pattern became clear:
             </p>
@@ -49,7 +49,7 @@ const OurStory = () => {
               </div>
             </div>
             <p className="story-inspiration">
-              This inspired the birth of <strong>Eg MarketPlace</strong> — a platform created for India, by India, and dedicated to Indian commerce.
+              This inspired the birth of <strong>SpotBazar</strong> — a platform created for India, by India, and dedicated to Indian commerce.
             </p>
             <div className="story-features">
               <p>We built a system where:</p>
@@ -64,7 +64,7 @@ const OurStory = () => {
           <section className="story-section purpose">
             <h2 className="story-heading">Our Purpose</h2>
             <p>
-              <strong>Eg MarketPlace</strong> is not just an ecommerce website; it is a movement to empower:
+              <strong>SpotBazar</strong> is not just an ecommerce website; it is a movement to empower:
             </p>
             <div className="purpose-grid">
               <div className="purpose-item">Local entrepreneurs</div>
@@ -112,15 +112,15 @@ const OurStory = () => {
               <div className="value-icon">✨</div>
               <h3>3. Effortless Shopping for Buyers</h3>
               <p>
-                User-friendly design, clear categories, smooth checkout, and mobile convenience—Eg MarketPlace makes shopping simple for everyone.
+                User-friendly design, clear categories, smooth checkout, and mobile convenience—SpotBazar makes shopping simple for everyone.
               </p>
             </div>
           </section>
 
           <section className="story-section difference">
-            <h2 className="story-heading">What Makes Eg MarketPlace Different</h2>
+            <h2 className="story-heading">What Makes SpotBazar Different</h2>
             <p className="difference-intro">
-              <strong>Eg MarketPlace is built around Indian needs, Indian culture, and Indian commerce.</strong>
+              <strong>SpotBazar is built around Indian needs, Indian culture, and Indian commerce.</strong>
             </p>
             <p>
               From phone number validation to local preferences—every detail is crafted for the Indian user.
@@ -165,7 +165,7 @@ const OurStory = () => {
               <div className="vision-item">Local businesses flourish</div>
             </div>
             <p className="vision-statement">
-              <strong>Eg MarketPlace is not a marketplace alone—it is a community of ambition, effort, creativity, and trust.</strong>
+              <strong>SpotBazar is not a marketplace alone—it is a community of ambition, effort, creativity, and trust.</strong>
             </p>
           </section>
 
@@ -182,7 +182,7 @@ const OurStory = () => {
             </p>
             <div className="journey-closing">
               <p>
-                <strong>Eg MarketPlace</strong> is more than a brand—it is a story of dreams, passion, and progress.
+                <strong>SpotBazar</strong> is more than a brand—it is a story of dreams, passion, and progress.
               </p>
               <p>
                 A story written by thousands of Indian sellers and millions of Indian buyers.
@@ -191,7 +191,7 @@ const OurStory = () => {
                 <strong>Welcome to our story.</strong>
               </p>
               <p className="closing-tagline">
-                <strong>Welcome to Eg MarketPlace—</strong>
+                <strong>Welcome to SpotBazar—</strong>
               </p>
               <p className="closing-tagline-final">
                 India's Marketplace for the Future.

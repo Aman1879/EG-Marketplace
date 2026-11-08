@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Vendor = require('../models/Vendor');
+const EmailOtp = require('../models/EmailOtp');
 const { authenticate } = require('../middleware/auth');
 const { recordAuditLog } = require('../utils/auditLogger');
+const { sendOtpEmail } = require('../utils/emailService');
+const { otpLimiter } = require('../middleware/security');
 
 const isProduction = process.env.NODE_ENV === 'production';
 const authCookieOptions = {
@@ -15,6 +19,163 @@ const authCookieOptions = {
   sameSite: 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000
 };
+
+// Send Email OTP for Registration
+router.post('/send-otp', otpLimiter, [
+  body('email').trim().isEmail().withMessage('Please provide a valid email address')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const normalizedEmail = req.body.email.toLowerCase().trim();
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: 'An account with this email address already exists. Please log in.' });
+    }
+
+    // Check 60-second resend cooldown
+    const existingOtp = await EmailOtp.findOne({ email: normalizedEmail });
+    if (existingOtp && existingOtp.resendAvailableAt && existingOtp.resendAvailableAt > new Date()) {
+      const waitSeconds = Math.max(1, Math.ceil((existingOtp.resendAvailableAt.getTime() - Date.now()) / 1000));
+      return res.status(429).json({
+        message: `Please wait ${waitSeconds} seconds before requesting a new verification code.`,
+        retryAfter: waitSeconds
+      });
+    }
+
+    // Generate cryptographically secure random 6-digit OTP (100000 - 999999)
+    const otp = crypto.randomInt(100000, 1000000).toString();
+
+    // Securely hash OTP before database storage (never store plaintext)
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    // 5-minute expiration and 60-second resend cooldown
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const resendAvailableAt = new Date(Date.now() + 60 * 1000);
+
+    const isTestRequest = process.env.NODE_ENV !== 'production' && req.headers['x-test-request'] === 'true';
+
+    const updateData = {
+      otpHash,
+      attempts: 0,
+      expiresAt,
+      resendAvailableAt,
+      verified: false,
+      verifiedAt: null,
+      verificationToken: null
+    };
+
+    if (isTestRequest) {
+      updateData.testPlainOtp = otp;
+    }
+
+    // Attempt email delivery first; do not persist OTP if provider rejects delivery
+    try {
+      await sendOtpEmail(normalizedEmail, otp);
+    } catch (deliveryError) {
+      console.error(`[Auth] Email delivery rejected for ${normalizedEmail}: ${deliveryError.message}`);
+      return res.status(502).json({
+        message: 'Failed to deliver verification email. The email provider rejected delivery. Please verify your email address or try again later.'
+      });
+    }
+
+    // Persist OTP record in database ONLY after email delivery succeeds
+    await EmailOtp.findOneAndUpdate(
+      { email: normalizedEmail },
+      updateData,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    await recordAuditLog({
+      actorId: null,
+      actorRole: 'anonymous',
+      action: 'auth.otp_sent',
+      resourceType: 'EmailOtp',
+      resourceId: normalizedEmail,
+      before: null,
+      after: { email: normalizedEmail, expiresAt },
+      metadata: { ip: req.ip }
+    });
+
+    // Never expose the OTP in response
+    return res.status(200).json({
+      success: true,
+      message: 'Verification code sent to your email address.',
+      expiresIn: 300,
+      resendCooldown: 60
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to send verification code. Please try again.', error: error.message });
+  }
+});
+
+// Verify Email OTP (Standalone check / Token issue)
+router.post('/verify-otp', [
+  body('email').trim().isEmail().withMessage('Please provide a valid email address'),
+  body('otp').trim().isLength({ min: 6, max: 6 }).isNumeric().withMessage('Verification code must be 6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const normalizedEmail = req.body.email.toLowerCase().trim();
+    const submittedOtp = req.body.otp.trim();
+
+    const otpRecord = await EmailOtp.findOne({ email: normalizedEmail });
+    if (!otpRecord || !otpRecord.expiresAt || otpRecord.expiresAt < new Date()) {
+      if (otpRecord) await EmailOtp.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ message: 'Verification code has expired or is invalid. Please request a new code.' });
+    }
+
+    // Limit to maximum 5 verification attempts
+    if (otpRecord.attempts >= 5) {
+      await EmailOtp.deleteOne({ _id: otpRecord._id });
+      return res.status(429).json({ message: 'Maximum verification attempts exceeded. Please request a new verification code.' });
+    }
+
+    const isMatch = await bcrypt.compare(submittedOtp, otpRecord.otpHash);
+    if (!isMatch) {
+      otpRecord.attempts += 1;
+      if (otpRecord.attempts >= 5) {
+        await EmailOtp.deleteOne({ _id: otpRecord._id });
+        return res.status(429).json({ message: 'Maximum verification attempts exceeded. Please request a new verification code.' });
+      }
+      await otpRecord.save();
+      const remainingAttempts = 5 - otpRecord.attempts;
+      return res.status(400).json({
+        message: `Invalid verification code. ${remainingAttempts} ${remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining.`,
+        remainingAttempts
+      });
+    }
+
+    // OTP matched - generate short-lived verification token
+    const verificationToken = jwt.sign(
+      { email: normalizedEmail, purpose: 'email_verification', otpId: otpRecord._id.toString() },
+      process.env.JWT_SECRET || 'marketplace-secret-key-2025',
+      { expiresIn: '10m' }
+    );
+
+    otpRecord.verified = true;
+    otpRecord.verifiedAt = new Date();
+    otpRecord.verificationToken = verificationToken;
+    await otpRecord.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email verified successfully.',
+      verificationToken
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to verify code.', error: error.message });
+  }
+});
 
 // Register
 router.post('/register', [
@@ -28,12 +189,77 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password, role } = req.body;
+    const { username, email, password, role, otp, verificationToken } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user exists
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ email: normalizedEmail }, { username: username.trim() }] });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // -------------------------------------------------------------------------
+    // EMAIL OTP VERIFICATION ENFORCEMENT
+    // -------------------------------------------------------------------------
+    if (!otp && !verificationToken) {
+      return res.status(400).json({
+        message: 'Email verification is required before registration. Please verify your email with the OTP.'
+      });
+    }
+
+    if (verificationToken) {
+      // Flow 1: Pre-verified via /verify-otp
+      try {
+        const decoded = jwt.verify(verificationToken, process.env.JWT_SECRET || 'marketplace-secret-key-2025');
+        if (decoded.email !== normalizedEmail || decoded.purpose !== 'email_verification') {
+          return res.status(400).json({ message: 'Invalid verification token for this email address.' });
+        }
+      } catch (err) {
+        return res.status(400).json({ message: 'Verification token has expired or is invalid. Please request a new code.' });
+      }
+
+      const validRecord = await EmailOtp.findOne({
+        email: normalizedEmail,
+        verified: true,
+        verificationToken
+      });
+
+      if (!validRecord) {
+        return res.status(400).json({ message: 'Verification token is invalid or has already been used. Please verify your email again.' });
+      }
+
+      // Invalidate immediately upon consumption so it cannot be reused
+      await EmailOtp.deleteOne({ _id: validRecord._id });
+    } else if (otp) {
+      // Flow 2: Direct OTP submission in registration payload
+      const otpRecord = await EmailOtp.findOne({ email: normalizedEmail });
+      if (!otpRecord || !otpRecord.expiresAt || otpRecord.expiresAt < new Date()) {
+        if (otpRecord) await EmailOtp.deleteOne({ _id: otpRecord._id });
+        return res.status(400).json({ message: 'Verification code has expired or is invalid. Please request a new code.' });
+      }
+
+      if (otpRecord.attempts >= 5) {
+        await EmailOtp.deleteOne({ _id: otpRecord._id });
+        return res.status(429).json({ message: 'Maximum verification attempts exceeded. Please request a new verification code.' });
+      }
+
+      const isMatch = await bcrypt.compare(String(otp).trim(), otpRecord.otpHash);
+      if (!isMatch) {
+        otpRecord.attempts += 1;
+        if (otpRecord.attempts >= 5) {
+          await EmailOtp.deleteOne({ _id: otpRecord._id });
+          return res.status(429).json({ message: 'Maximum verification attempts exceeded. Please request a new verification code.' });
+        }
+        await otpRecord.save();
+        const remainingAttempts = 5 - otpRecord.attempts;
+        return res.status(400).json({
+          message: `Invalid verification code. ${remainingAttempts} ${remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining.`,
+          remainingAttempts
+        });
+      }
+
+      // Invalidate immediately upon successful registration
+      await EmailOtp.deleteOne({ _id: otpRecord._id });
     }
 
     // Hash password
@@ -42,7 +268,7 @@ router.post('/register', [
     // Create user
     const user = new User({
       username,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       role: role === 'vendor' || role === 'seller' ? 'vendor' : 'buyer'
     });

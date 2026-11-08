@@ -206,8 +206,8 @@ I designed and built this website myself and handle everything you see here..</p
               <h3>General Inquiries</h3>
               <p>
                 Phone: +91 1234567890<br />
-                Email: egmarketplace@gmail.com<br />
-                Support: egsupport@gmail.com
+                Email: realspotbazar@gmail.com<br />
+                Support: support@spotbazar.com
               </p>
             </div>
           </div>

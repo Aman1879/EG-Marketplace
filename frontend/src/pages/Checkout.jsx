@@ -264,7 +264,7 @@ const Checkout = () => {
         key,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
-        name: 'EG Marketplace',
+        name: 'SpotBazar',
         description: `Order #${orderId}`,
         order_id: razorpayOrder.id,
         handler: async (paymentResponse) => {
