@@ -1,17 +1,20 @@
 /**
- * Email Service Module for EG Marketplace
+ * Email Service Module for SpotBazar / EG-Marketplace
  * 
- * Provides SMTP email delivery using Nodemailer with support for:
- * - Configurable SMTP transports via environment variables
- *   (SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, EMAIL_FROM)
- * - Sender display name: "EG-Marketplace"
- * - Email subject: "Verify Your Email - EG-Marketplace"
- * - Professional branded HTML email with orange theme
- * - Plain-text fallback
- * - Secure handling: Never exposes OTPs in responses or production logs
- * - Verifies SMTP configuration and delivery before confirming send
+ * Provides flexible, cloud-compatible email delivery supporting:
+ * 1. Brevo SMTP Relay (Port 2525 recommended for Render Free Tier to bypass firewall port blocks)
+ * 2. Brevo HTTPS REST API (Port 443, zero SMTP port dependencies)
+ * 3. Gmail SMTP (Ports 587 / 465, supported locally and on paid cloud tiers)
+ * 4. Any standard RFC-compliant SMTP provider (Amazon SES, SendGrid, Mailgun, Postmark)
+ * 
+ * Security & Reliability:
+ * - Never logs credentials, passwords, or plaintext OTP codes
+ * - Enforces socket and connection timeouts (configurable via SMTP_TIMEOUT_MS)
+ * - Safe error categorization for diagnostics (distinguishing connection timeouts from auth errors)
+ * - Plaintext fallback included alongside responsive branded HTML email
  */
 
+const https = require('https');
 const nodemailer = require('nodemailer');
 
 // In-memory store for integration test assertions only (never active in production)
@@ -25,6 +28,16 @@ function isSmtpConfigured() {
     process.env.SMTP_HOST &&
     process.env.SMTP_USER &&
     process.env.SMTP_PASS
+  );
+}
+
+/**
+ * Checks if any production email delivery mechanism is configured (SMTP or Brevo API).
+ */
+function isEmailConfigured() {
+  return Boolean(
+    isSmtpConfigured() ||
+    process.env.BREVO_API_KEY
   );
 }
 
@@ -53,6 +66,30 @@ function getSenderAddress() {
 }
 
 /**
+ * Categorizes an email error into a standard safe diagnostic classification.
+ */
+function categorizeEmailError(err) {
+  if (!err) return 'UNKNOWN_ERROR';
+  const msg = (err.message || '').toLowerCase();
+  const code = (err.code || '').toUpperCase();
+
+  if (msg.includes('not configured')) return 'SMTP_NOT_CONFIGURED';
+  if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT' || msg.includes('timeout') || msg.includes('greeting timeout') || msg.includes('connection timeout')) {
+    return 'SMTP_CONNECTION_TIMEOUT';
+  }
+  if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EHOSTUNREACH') {
+    return 'SMTP_HOST_UNREACHABLE';
+  }
+  if (code === 'EAUTH' || err.responseCode === 535 || err.statusCode === 401 || msg.includes('invalid login') || msg.includes('badcredentials') || msg.includes('unauthorized') || msg.includes('username and password not accepted')) {
+    return 'SMTP_AUTH_FAILED';
+  }
+  if (code === 'EENVELOPE' || err.responseCode === 550 || err.statusCode === 400 || msg.includes('recipient rejected')) {
+    return 'SMTP_RECIPIENT_REJECTED';
+  }
+  return 'SMTP_DELIVERY_FAILED';
+}
+
+/**
  * Creates and returns a Nodemailer transport instance based on current configuration.
  */
 function createTransporter(customConfig = null) {
@@ -67,6 +104,7 @@ function createTransporter(customConfig = null) {
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+  const timeoutMs = parseInt(process.env.SMTP_TIMEOUT_MS || '12000', 10);
 
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -76,9 +114,81 @@ function createTransporter(customConfig = null) {
       user: process.env.SMTP_USER,
       pass
     },
-    connectionTimeout: 15000,
-    greetingTimeout: 8000,
-    socketTimeout: 15000
+    connectionTimeout: timeoutMs,
+    greetingTimeout: Math.min(timeoutMs, 8000),
+    socketTimeout: timeoutMs
+  });
+}
+
+/**
+ * Sends email via Brevo's HTTPS REST API over port 443 (zero SMTP port restrictions).
+ */
+function sendViaBrevoApi(email, otp, apiKey = process.env.BREVO_API_KEY) {
+  return new Promise((resolve, reject) => {
+    if (!apiKey) {
+      return reject(new Error('BREVO_API_KEY is not configured in environment variables.'));
+    }
+
+    const brand = getBrandName();
+    const senderRaw = getSenderAddress();
+    let senderEmail = process.env.SMTP_USER || 'realspotbazar@gmail.com';
+    let senderName = brand;
+    const match = senderRaw.match(/"([^"]+)"\s*<([^>]+)>/);
+    if (match) {
+      senderName = match[1];
+      senderEmail = match[2];
+    }
+
+    const payload = JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email }],
+      subject: `Verify Your Email - ${brand}`,
+      htmlContent: getOtpHtmlTemplate(otp, brand),
+      textContent: getOtpPlaintext(otp, brand)
+    });
+
+    const timeoutMs = parseInt(process.env.SMTP_TIMEOUT_MS || '12000', 10);
+    const req = https.request({
+      hostname: 'api.brevo.com',
+      port: 443,
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+        'Content-Length': Buffer.byteLength(payload)
+      },
+      timeout: timeoutMs
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const parsed = JSON.parse(data);
+            resolve({ delivered: true, messageId: parsed.messageId });
+          } catch {
+            resolve({ delivered: true });
+          }
+        } else {
+          const err = new Error(`Brevo API returned status ${res.statusCode}: ${data}`);
+          err.statusCode = res.statusCode;
+          reject(err);
+        }
+      });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      const err = new Error(`Brevo API connection timed out after ${timeoutMs}ms`);
+      err.code = 'ETIMEDOUT';
+      reject(err);
+    });
+
+    req.on('error', (err) => reject(err));
+    req.write(payload);
+    req.end();
   });
 }
 
@@ -86,11 +196,22 @@ function createTransporter(customConfig = null) {
  * Verifies active SMTP connection configuration with the mail server.
  */
 async function verifySmtpConnection(customConfig = null) {
+  // If Brevo API is explicitly configured
+  if (process.env.EMAIL_PROVIDER === 'brevo_api' || (process.env.BREVO_API_KEY && !process.env.SMTP_HOST)) {
+    return {
+      configured: true,
+      healthy: Boolean(process.env.BREVO_API_KEY),
+      provider: 'brevo_api',
+      sender: getSenderAddress(),
+      message: 'Brevo HTTPS API key configured (Port 443).'
+    };
+  }
+
   const transporter = createTransporter(customConfig);
   if (!transporter) {
     return {
       configured: false,
-      message: 'SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASS) are not configured in backend/.env'
+      message: 'Email service credentials (SMTP_HOST or BREVO_API_KEY) are not configured.'
     };
   }
 
@@ -99,6 +220,7 @@ async function verifySmtpConnection(customConfig = null) {
     return {
       configured: true,
       healthy: true,
+      provider: 'smtp',
       sender: getSenderAddress(),
       message: 'SMTP connection established successfully.'
     };
@@ -106,16 +228,16 @@ async function verifySmtpConnection(customConfig = null) {
     return {
       configured: true,
       healthy: false,
+      provider: 'smtp',
       sender: getSenderAddress(),
-      error: err.message
+      error: err.message,
+      category: categorizeEmailError(err)
     };
   }
 }
 
 /**
  * Generates professional branded HTML for the OTP verification email.
- * @param {string} otp - The 6-digit OTP code
- * @param {string} brand - Brand display name (e.g. "SpotBazar")
  */
 function getOtpHtmlTemplate(otp, brand = getBrandName()) {
   return `
@@ -188,8 +310,6 @@ function getOtpHtmlTemplate(otp, brand = getBrandName()) {
 
 /**
  * Generates plaintext fallback message for the OTP email.
- * @param {string} otp - The 6-digit OTP code
- * @param {string} brand - Brand display name (e.g. "SpotBazar")
  */
 function getOtpPlaintext(otp, brand = getBrandName()) {
   return `Welcome to ${brand}!
@@ -206,34 +326,8 @@ The ${brand} Team`;
 }
 
 /**
- * Categorizes an email error into a standard safe diagnostic classification.
- */
-function categorizeEmailError(err) {
-  if (!err) return 'UNKNOWN_ERROR';
-  const msg = (err.message || '').toLowerCase();
-  const code = (err.code || '').toUpperCase();
-
-  if (msg.includes('not configured')) return 'SMTP_NOT_CONFIGURED';
-  if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT' || msg.includes('timeout') || msg.includes('greeting timeout')) {
-    return 'SMTP_CONNECTION_TIMEOUT';
-  }
-  if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EHOSTUNREACH') {
-    return 'SMTP_HOST_UNREACHABLE';
-  }
-  if (code === 'EAUTH' || err.responseCode === 535 || msg.includes('invalid login') || msg.includes('badcredentials') || msg.includes('username and password not accepted')) {
-    return 'SMTP_AUTH_FAILED';
-  }
-  if (code === 'EENVELOPE' || err.responseCode === 550 || msg.includes('recipient rejected')) {
-    return 'SMTP_RECIPIENT_REJECTED';
-  }
-  return 'SMTP_DELIVERY_FAILED';
-}
-
-/**
  * Sends a 6-digit OTP verification code to the target recipient.
- * @param {string} email - Normalized recipient email
- * @param {string} otp - 6-digit OTP
- * @returns {Promise<{ delivered: boolean, messageId?: string, simulated?: boolean }>}
+ * Routes through Brevo REST API (if configured) or Nodemailer SMTP.
  */
 async function sendOtpEmail(email, otp) {
   const normalizedEmail = String(email).toLowerCase().trim();
@@ -246,20 +340,34 @@ async function sendOtpEmail(email, otp) {
     });
   }
 
+  // 1. Direct Brevo HTTP API (Port 443) if selected or if BREVO_API_KEY is supplied without SMTP_HOST
+  if (process.env.EMAIL_PROVIDER === 'brevo_api' || (process.env.BREVO_API_KEY && !process.env.SMTP_HOST)) {
+    try {
+      return await sendViaBrevoApi(normalizedEmail, otp);
+    } catch (apiErr) {
+      const category = categorizeEmailError(apiErr);
+      console.error(`[EmailService] Brevo API delivery failed to ${normalizedEmail} [${category}]: ${apiErr.message}`);
+      const wrappedError = new Error(`Email delivery failed: ${apiErr.message}`);
+      wrappedError.category = category;
+      wrappedError.code = apiErr.code;
+      throw wrappedError;
+    }
+  }
+
+  // 2. SMTP Transport (Brevo SMTP Relay, Gmail, or any custom SMTP)
   const transporter = createTransporter();
 
   if (!transporter) {
     if (process.env.NODE_ENV === 'production') {
-      console.error('[EmailService] SMTP credentials are not configured in production environment.');
+      console.error('[EmailService] Neither SMTP credentials nor BREVO_API_KEY are configured in production environment.');
       const err = new Error('Email service is not configured. Please contact platform administration.');
       err.category = 'SMTP_NOT_CONFIGURED';
       err.code = 'ENOCONFIG';
       throw err;
     }
 
-    // In local development or test mode, record simulated delivery
     if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-      console.log(`[EmailService] SMTP credentials not set. Simulated OTP email delivery to: ${normalizedEmail}`);
+      console.log(`[EmailService] Email credentials not set. Simulated OTP email delivery to: ${normalizedEmail}`);
     }
 
     return { delivered: false, simulated: true };
@@ -292,7 +400,6 @@ async function sendOtpEmail(email, otp) {
 
 /**
  * Helper to retrieve the last sent OTP for an email during automated tests.
- * Only returns a value when NODE_ENV === 'test'.
  */
 function getLastSentOtpForTest(email) {
   if (process.env.NODE_ENV !== 'test') return null;
@@ -310,11 +417,13 @@ function clearTestOtps() {
 
 module.exports = {
   isSmtpConfigured,
+  isEmailConfigured,
   getBrandName,
   getSenderAddress,
   verifySmtpConnection,
   createTransporter,
   categorizeEmailError,
+  sendViaBrevoApi,
   sendOtpEmail,
   getOtpHtmlTemplate,
   getOtpPlaintext,

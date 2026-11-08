@@ -73,31 +73,51 @@ npm install
 ```
 
 #### Email Service & SMTP Configuration (Email OTP Verification Before Registration)
-EG Marketplace enforces email OTP verification before creating user accounts. To send real verification emails, configure your SMTP credentials in `backend/.env` (refer to `backend/.env.example`):
+SpotBazar enforces email OTP verification before creating user accounts. To send real verification emails, configure your email credentials in `backend/.env` (refer to `backend/.env.example`):
 
+##### Option 1: Brevo SMTP Relay (RECOMMENDED for Render Free Tier)
+Render's Free Tier blocks standard SMTP ports (25, 465, and 587). Using Brevo on port **2525** reliably bypasses Render's port restrictions:
+```env
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=2525
+SMTP_SECURE=false
+SMTP_USER=your_brevo_account_email@example.com
+SMTP_PASS=your_brevo_master_smtp_key
+EMAIL_FROM="SpotBazar" <your_verified_sender@example.com>
+SMTP_TIMEOUT_MS=12000
+```
+
+##### Option 2: Brevo HTTPS REST API (Zero SMTP Port Restrictions)
+Delivers over HTTPS port 443 with zero socket or port restrictions:
+```env
+EMAIL_PROVIDER=brevo_api
+BREVO_API_KEY=your_brevo_v3_api_key
+EMAIL_FROM="SpotBazar" <your_verified_sender@example.com>
+```
+
+##### Option 3: Gmail SMTP (Local Development & Paid Cloud Instances)
 ```env
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_16_character_app_password
-EMAIL_FROM="EG-Marketplace" <no-reply@egmarketplace.com>
+EMAIL_FROM="SpotBazar" <your_email@gmail.com>
+SMTP_TIMEOUT_MS=12000
 ```
 
 #### Test Email Delivery:
-Run the verification script to test actual SMTP delivery and check your inbox:
+Run the verification script to test actual delivery and check your inbox:
 ```bash
 # Inside backend directory:
-npm run test:smtp                      # Sends test OTP to configured ADMIN_EMAIL
+npm run test:smtp                      # Sends test OTP to configured sender
 npm run test:smtp user@example.com      # Or specify a custom test recipient
 ```
 
 > [!NOTE]
-> - **Sender Display Name:** The sender display name is always `EG-Marketplace` and uses the address configured in `EMAIL_FROM` or `SMTP_USER`.
-> - **Email Subject:** `Verify Your Email - EG-Marketplace`.
-> - **Delivery Verification:** If the mail provider rejects delivery, the OTP is not persisted and cooldown is not started.
-> - **Gmail Users:** Generate an **App Password** via Google Account -> Security -> 2-Step Verification -> App Passwords. Do not use your primary Google account password.
-> - **Other Providers:** Mailtrap, SendGrid, Amazon SES, Brevo, or Outlook SMTP can be used with their respective host and port (587 or 465).
+> - **Sender Display Name:** Defaults to `SpotBazar` and uses the address configured in `EMAIL_FROM` or `SMTP_USER`.
+> - **Email Subject:** `Verify Your Email - SpotBazar`.
+> - **Render Outbound SMTP Warning:** Render's Free tier blocks ports 25, 465, and 587. If using Gmail or standard ports on Render, requests will time out (`Connection timeout`). Use Brevo on port **2525** or Brevo HTTPS API to resolve this immediately on free hosting.
 > - **Security Hardening:** OTPs are 6-digit random codes generated via cryptographically secure RNG (`crypto.randomInt`), hashed with `bcryptjs` before storage, expire after 5 minutes, enforce a 60-second resend cooldown, lock out after 5 failed attempts, and are immediately deleted upon registration to prevent replay attacks.
 
 
@@ -335,6 +355,13 @@ The backend runs as a containerized or native Node.js web service on Render. A d
 | `RAZORPAY_KEY_ID` | Razorpay API Key ID | `rzp_live_...` (or `rzp_test_...`) | **Yes** |
 | `RAZORPAY_KEY_SECRET` | Razorpay API Key Secret | Secret token from Razorpay Dashboard | **Yes** |
 | `RAZORPAY_WEBHOOK_SECRET` | Razorpay Webhook Signing Secret | Webhook secret from Razorpay Dashboard | **Yes** |
+| `SMTP_HOST` | SMTP Relay Host (e.g. Brevo or Gmail) | `smtp-relay.brevo.com` (or `smtp.gmail.com`) | **Yes** |
+| `SMTP_PORT` | SMTP Port (`2525` recommended on Render Free Tier) | `2525` (Brevo) or `587` | **Yes** |
+| `SMTP_SECURE` | Use implicit SSL/TLS (`true` for 465, `false` for 587/2525) | `false` | **Yes** |
+| `SMTP_USER` | SMTP Username / Login Email | `your_brevo_or_gmail_email@example.com` | **Yes** |
+| `SMTP_PASS` | Brevo Master SMTP Key or Gmail App Password | Generated key from email provider | **Yes** |
+| `EMAIL_FROM` | Sender display name and address | `"SpotBazar" <your_email@example.com>` | **Yes** |
+| `SMTP_TIMEOUT_MS` | Outbound socket timeout in milliseconds | `12000` | No |
 
 > [!CAUTION]
 > The backend enforces strict production safeguards: if `NODE_ENV === 'production'`, the server will refuse to start if default development secrets (`marketplace-secret-key-2025`) or a missing `MONGODB_URI` are detected.
