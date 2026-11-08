@@ -54,5 +54,10 @@ const disputeSchema = new mongoose.Schema({
   }
 });
 
+disputeSchema.index({ orderId: 1 });
+disputeSchema.index({ buyerId: 1, createdAt: -1 });
+disputeSchema.index({ vendorId: 1, createdAt: -1 });
+disputeSchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Dispute', disputeSchema);
 

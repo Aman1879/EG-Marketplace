@@ -13,6 +13,19 @@ const cartItemSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  variantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null,
+    index: true
+  },
+  variantName: {
+    type: String,
+    default: ''
+  },
+  variantSku: {
+    type: String,
+    default: ''
+  },
   quantity: {
     type: Number,
     required: true,
@@ -30,7 +43,7 @@ const cartItemSchema = new mongoose.Schema({
   }
 });
 
-cartItemSchema.index({ userId: 1, productId: 1 }, { unique: true });
+cartItemSchema.index({ userId: 1, productId: 1, variantId: 1 }, { unique: true });
 
 module.exports = mongoose.model('CartItem', cartItemSchema);
 

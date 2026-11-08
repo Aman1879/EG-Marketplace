@@ -1,0 +1,32 @@
+# Render Blueprint Specification for EG Marketplace Backend Web Service
+services:
+  - type: web
+    name: eg-marketplace-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: FRONTEND_URLS
+        value: https://egmarketplace.netlify.app
+      - key: ADMIN_COMMISSION_RATE
+        value: 0.10
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+

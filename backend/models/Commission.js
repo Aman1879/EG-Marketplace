@@ -29,5 +29,7 @@ const commissionSchema = new mongoose.Schema({
   }
 });
 
+commissionSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Commission', commissionSchema);
 

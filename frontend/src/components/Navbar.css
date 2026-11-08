@@ -131,12 +131,35 @@
 @media (max-width: 768px) {
   .navbar-container {
     flex-wrap: wrap;
+    gap: 12px;
   }
 
   .navbar-search {
     order: 3;
     width: 100%;
     max-width: 100%;
+  }
+
+  .navbar-links {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .nav-link,
+  .cart-button {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-user {
+    display: none;
+  }
+
+  .cart-button {
+    padding: 6px 10px;
   }
 }
 

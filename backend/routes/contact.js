@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const ContactMessage = require('../models/ContactMessage');
 const { authenticate, authorize } = require('../middleware/auth');
@@ -82,6 +83,10 @@ router.get('/messages', authenticate, authorize('admin'), async (req, res) => {
 // Get single message (admin only)
 router.get('/messages/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid message ID format' });
+    }
+
     const message = await ContactMessage.findById(req.params.id);
     if (!message) {
       return res.status(404).json({ message: 'Message not found' });
@@ -101,6 +106,10 @@ router.put('/messages/:id/status', authenticate, authorize('admin'), [
   body('status').isIn(['new', 'read', 'replied', 'archived']).withMessage('Invalid status')
 ], async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid message ID format' });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -139,6 +148,10 @@ router.put('/messages/:id/status', authenticate, authorize('admin'), [
 // Delete message (admin only)
 router.delete('/messages/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid message ID format' });
+    }
+
     const message = await ContactMessage.findByIdAndDelete(req.params.id);
     if (!message) {
       return res.status(404).json({ message: 'Message not found' });

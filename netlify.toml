@@ -1,0 +1,23 @@
+# Netlify Configuration for EG Marketplace Frontend
+[build]
+  base = "frontend"
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# SPA routing redirect rule: rewrites all routes to index.html with HTTP 200
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers for static assets
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+

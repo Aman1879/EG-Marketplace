@@ -6,6 +6,15 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Vendor = require('../models/Vendor');
 const { authenticate } = require('../middleware/auth');
+const { recordAuditLog } = require('../utils/auditLogger');
+
+const isProduction = process.env.NODE_ENV === 'production';
+const authCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000
+};
 
 // Register
 router.post('/register', [
@@ -39,11 +48,22 @@ router.post('/register', [
     });
     await user.save();
 
+    await recordAuditLog({
+      actorId: user._id,
+      actorRole: user.role,
+      action: 'user.register',
+      resourceType: 'User',
+      resourceId: user._id.toString(),
+      before: null,
+      after: { username: user.username, email: user.email, role: user.role },
+      metadata: { ip: req.ip }
+    });
+
     // Generate token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'marketplace-secret-key-2025', { expiresIn: '7d' });
 
     // Set cookie for immediate login
-    res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', token, authCookieOptions);
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -98,7 +118,7 @@ router.post('/login', [
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'marketplace-secret-key-2025', { expiresIn: '7d' });
 
     // Set cookie
-    res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', token, authCookieOptions);
 
     res.json({
       message: 'Login successful',
@@ -142,7 +162,11 @@ router.get('/me', authenticate, async (req, res) => {
 
 // Logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax'
+  });
   res.json({ message: 'Logout successful' });
 });
 

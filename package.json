@@ -9,7 +9,8 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "cd frontend && npm run build",
     "start:backend": "cd backend && npm start",
-    "start:frontend": "cd frontend && npm run preview"
+    "start:frontend": "cd frontend && npm run preview",
+    "test": "npm --prefix backend test"
   },
   "keywords": ["marketplace", "nodejs", "react", "mongodb"],
   "author": "",

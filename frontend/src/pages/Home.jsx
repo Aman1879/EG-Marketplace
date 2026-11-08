@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import ProductCard from '../components/ProductCard';
 import './Home.css';
 
 const Home = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [heroSearch, setHeroSearch] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -20,7 +22,10 @@ const Home = () => {
         axios.get(`${API_BASE_URL}/api/products`),
         axios.get(`${API_BASE_URL}/api/vendors/shops`)
       ]);
-      setProducts(prodRes.data || []);
+      const productList = Array.isArray(prodRes.data)
+        ? prodRes.data
+        : (prodRes.data?.products || []);
+      setProducts(productList);
       setShops((shopRes.data || []).slice(0, 6)); // featured shops
       setLoading(false);
     } catch (error) {
@@ -69,10 +74,28 @@ const Home = () => {
           <p className="hero-subtitle">
             Discover unique and handmade items from independent sellers around the India
           </p>
-          <div className="hero-search">
-            <input type="text" placeholder="Search for anything..." className="hero-search-input" />
-            <Link to="/products" className="btn btn-primary hero-search-btn">Search</Link>
-          </div>
+          <form
+            className="hero-search"
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (heroSearch.trim()) {
+                navigate(`/products?search=${encodeURIComponent(heroSearch.trim())}`);
+              } else {
+                navigate('/products');
+              }
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Search for anything..."
+              className="hero-search-input"
+              aria-label="Search for anything"
+              value={heroSearch}
+              onChange={(e) => setHeroSearch(e.target.value)}
+            />
+            <button type="submit" className="btn btn-primary hero-search-btn" aria-label="Submit search">Search</button>
+          </form>
         </div>
       </section>
 
@@ -83,7 +106,7 @@ const Home = () => {
             {categories.map((category, index) => (
               <Link key={index} to={category.link} className="category-card">
                 <div className="category-image">
-                  <img src={category.image} alt={category.name} />
+                  <img src={category.image} alt={category.name} loading="lazy" />
                 </div>
                 <h3 className="category-name">{category.name}</h3>
               </Link>
@@ -104,7 +127,7 @@ const Home = () => {
                     <Link key={shop._id} to={`/shops/${shop._id}`} className="shop-row">
                       <div className="shop-row-logo">
                         {shop.logoUrl ? (
-                          <img src={shop.logoUrl} alt={shop.shopName} />
+                          <img src={shop.logoUrl} alt={shop.shopName} loading="lazy" />
                         ) : (
                           <div className="logo-placeholder">{shop.shopName?.charAt(0) || 'S'}</div>
                         )}

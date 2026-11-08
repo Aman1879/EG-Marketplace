@@ -35,7 +35,7 @@ const ShopPage = () => {
       <div className="shop-hero">
         <div className="banner">
           {shop.bannerUrl ? (
-            <img src={shop.bannerUrl} alt={shop.shopName} />
+            <img src={shop.bannerUrl} alt={shop.shopName} loading="lazy" />
           ) : (
             <div className="banner-placeholder"></div>
           )}
@@ -43,7 +43,7 @@ const ShopPage = () => {
         <div className="shop-meta container">
           <div className="logo">
             {shop.logoUrl ? (
-              <img src={shop.logoUrl} alt={shop.shopName} />
+              <img src={shop.logoUrl} alt={shop.shopName} loading="lazy" />
             ) : (
               <div className="logo-placeholder">{shop.shopName?.charAt(0) || 'S'}</div>
             )}

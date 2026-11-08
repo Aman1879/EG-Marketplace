@@ -170,6 +170,122 @@
   padding: 40px;
 }
 
+.product-header-tags {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.product-category-badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.product-stock-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.product-stock-badge.in-stock {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.product-stock-badge.low-stock {
+  background: #fef7e0;
+  color: #b06000;
+}
+
+.product-stock-badge.out-of-stock {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.thumbnail-gallery {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.thumb-btn {
+  border: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.thumb-btn.active {
+  border-color: var(--primary-color);
+}
+
+.thumb-btn img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.variants-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.variants-label {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.variants-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.variant-chip {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.variant-chip:hover {
+  border-color: var(--primary-color);
+}
+
+.variant-chip.active {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.vendor-link {
+  color: var(--primary-color);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.btn-disabled {
+  background: #ccc !important;
+  cursor: not-allowed;
+  color: #666 !important;
+}
+
 @media (max-width: 768px) {
   .product-detail-content {
     grid-template-columns: 1fr;

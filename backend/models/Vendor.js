@@ -137,6 +137,8 @@ vendorSchema.pre('save', function updateTimestamp(next) {
 // Ensure no unique index on userId alone (vendors can have multiple shops)
 // Create compound index on userId + shopName if needed for uniqueness per shop name
 vendorSchema.index({ userId: 1, shopName: 1 }, { unique: false });
+vendorSchema.index({ approvalStatus: 1, createdAt: -1 });
+vendorSchema.index({ shopName: 1 });
 
 module.exports = mongoose.model('Vendor', vendorSchema);
 

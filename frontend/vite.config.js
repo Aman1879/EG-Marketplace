@@ -11,6 +11,18 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-network': ['axios', 'socket.io-client']
+        }
+      }
+    }
   }
 })
 

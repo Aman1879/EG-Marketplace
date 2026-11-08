@@ -43,17 +43,18 @@ const Navbar = () => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" aria-label="Main Navigation">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
+        <Link to="/" className="navbar-logo" aria-label="EG Marketplace Home">
           <Logo showText={true} size="medium" />
         </Link>
 
-        <div className="navbar-search">
+        <div className="navbar-search" role="search">
           <input
             type="text"
             placeholder="Search for anything..."
             className="search-input"
+            aria-label="Search products"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -61,6 +62,7 @@ const Navbar = () => {
           <button 
             className="search-btn"
             onClick={handleSearch}
+            aria-label="Submit search"
           >
             Search
           </button>
@@ -74,13 +76,20 @@ const Navbar = () => {
                   <Link to="/buyer/dashboard" className="nav-link">
                     Dashboard
                   </Link>
-                  <Link to="/cart" className="cart-button">
-                    <span className="cart-icon">🛒</span>
+                  <Link
+                    to="/cart"
+                    className="cart-button"
+                    aria-label={`Shopping cart with ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
+                  >
+                    <span className="cart-icon" aria-hidden="true">🛒</span>
                     <span className="cart-text">Cart</span>
                     <span className="cart-badge">{cartCount}</span>
                   </Link>
                   <Link to="/orders" className="nav-link">
                     Orders
+                  </Link>
+                  <Link to="/addresses" className="nav-link">
+                    Addresses
                   </Link>
                 </>
               )}

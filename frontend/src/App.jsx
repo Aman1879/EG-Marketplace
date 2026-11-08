@@ -13,6 +13,7 @@ import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import OrderHistory from './pages/OrderHistory';
+import AddressBook from './pages/AddressBook';
 import VendorDashboard from './pages/VendorDashboard';
 import VendorEarnings from './pages/VendorEarnings';
 import AdminDashboard from './pages/AdminDashboard';
@@ -62,6 +63,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRoles={['buyer']}>
                 <AnimatedPage><OrderHistory /></AnimatedPage>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/addresses"
+            element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <AnimatedPage><AddressBook /></AnimatedPage>
               </ProtectedRoute>
             }
           />

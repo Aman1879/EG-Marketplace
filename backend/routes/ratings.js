@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Rating = require('../models/Rating');
 const Product = require('../models/Product');
@@ -19,6 +20,14 @@ router.post('/', authenticate, authorize('buyer'), [
     }
 
     const { productId, orderId, rating, review } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: 'Invalid order ID format' });
+    }
 
     // Verify order belongs to buyer
     const order = await Order.findById(orderId);
@@ -79,6 +88,10 @@ router.post('/', authenticate, authorize('buyer'), [
 // Get ratings for a product
 router.get('/product/:productId', async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.productId)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+
     const ratings = await Rating.find({ productId: req.params.productId })
       .populate('buyerId', 'username')
       .sort({ createdAt: -1 });

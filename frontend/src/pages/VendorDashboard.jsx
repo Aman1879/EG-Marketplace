@@ -26,7 +26,8 @@ const VendorDashboard = () => {
     price: '',
     imageUrl: '',
     stock: 1,
-    category: ''
+    category: 'Clothing',
+    variants: []
   });
   const [imageSource, setImageSource] = useState('url'); // 'url' | 'upload'
   const [imageFileName, setImageFileName] = useState('');
@@ -45,27 +46,30 @@ const VendorDashboard = () => {
   // Listen for new orders and disputes via Socket.IO
   useEffect(() => {
     if (socket) {
-      socket.on('newOrder', (data) => {
+      const handleNewOrder = (data) => {
         // Refresh orders when a new order is received
         if (activeShopId) {
           fetchShopData(activeShopId);
         } else {
           fetchData();
         }
-      });
+      };
 
-      socket.on('newDispute', (data) => {
+      const handleNewDispute = (data) => {
         // Refresh disputes when a new dispute is created
         if (activeShopId) {
           fetchShopData(activeShopId);
         } else {
           fetchData();
         }
-      });
+      };
+
+      socket.on('newOrder', handleNewOrder);
+      socket.on('newDispute', handleNewDispute);
 
       return () => {
-        socket.off('newOrder');
-        socket.off('newDispute');
+        socket.off('newOrder', handleNewOrder);
+        socket.off('newDispute', handleNewDispute);
       };
     }
   }, [socket, activeShopId]);
@@ -126,20 +130,27 @@ const VendorDashboard = () => {
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...productForm,
+        sku: productForm.sku ? productForm.sku.trim() : '',
+        vendorId: activeShopId,
+        variants: (productForm.variants || []).filter(v => v.name && v.name.trim()).map(v => ({
+          name: v.name.trim(),
+          sku: v.sku ? v.sku.trim() : '',
+          price: v.price !== '' && !isNaN(Number(v.price)) ? Number(v.price) : Number(productForm.price),
+          stock: v.stock !== '' && !isNaN(Number(v.stock)) ? Number(v.stock) : 0,
+          isActive: v.isActive !== false
+        }))
+      };
+
       if (editingProduct) {
-        await axios.put(`${API_BASE_URL}/api/products/${editingProduct._id}`, {
-          ...productForm,
-          vendorId: activeShopId
-        });
+        await axios.put(`${API_BASE_URL}/api/products/${editingProduct._id}`, payload);
       } else {
-        await axios.post(`${API_BASE_URL}/api/products`, {
-          ...productForm,
-          vendorId: activeShopId
-        });
+        await axios.post(`${API_BASE_URL}/api/products`, payload);
       }
       setShowProductForm(false);
       setEditingProduct(null);
-      setProductForm({ title: '', description: '', price: '', imageUrl: '', stock: 1, category: '' });
+      setProductForm({ title: '', description: '', price: '', sku: '', imageUrl: '', stock: 1, category: 'Clothing', variants: [] });
       setImageFileName('');
       fetchShopData(activeShopId);
     } catch (error) {
@@ -153,9 +164,17 @@ const VendorDashboard = () => {
       title: product.title,
       description: product.description,
       price: product.price,
+      sku: product.sku || '',
       imageUrl: product.imageUrl,
       stock: product.stock,
-      category: product.category
+      category: product.category,
+      variants: (product.variants || []).map(v => ({
+        name: v.name,
+        sku: v.sku || '',
+        price: v.price !== undefined ? v.price : '',
+        stock: v.stock !== undefined ? v.stock : 0,
+        isActive: v.isActive !== false
+      }))
     });
     setImageSource('url');
     setImageFileName('');
@@ -309,7 +328,7 @@ const VendorDashboard = () => {
               setShowProductForm(true);
               setShowDisputes(false);
               setEditingProduct(null);
-              setProductForm({ title: '', description: '', price: '', imageUrl: '', stock: 1, category: '' });
+              setProductForm({ title: '', description: '', price: '', sku: '', imageUrl: '', stock: 1, category: '' });
             }}
           >
             {editingProduct ? 'Edit Product' : 'Add Product'}
@@ -329,8 +348,9 @@ const VendorDashboard = () => {
           <div className="product-form-section">
             <form onSubmit={handleProductSubmit} className="product-form">
               <div className="form-group">
-                <label>Title *</label>
+                <label htmlFor="vendor-prod-title">Title *</label>
                 <input
+                  id="vendor-prod-title"
                   type="text"
                   value={productForm.title}
                   onChange={(e) => setProductForm({ ...productForm, title: e.target.value })}
@@ -339,8 +359,9 @@ const VendorDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label>Description *</label>
+                <label htmlFor="vendor-prod-desc">Description *</label>
                 <textarea
+                  id="vendor-prod-desc"
                   value={productForm.description}
                   onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                   rows="4"
@@ -350,8 +371,9 @@ const VendorDashboard = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Price *</label>
+                  <label htmlFor="vendor-prod-price">Price (₹) *</label>
                   <input
+                    id="vendor-prod-price"
                     type="number"
                     step="0.01"
                     min="0"
@@ -362,8 +384,9 @@ const VendorDashboard = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Stock *</label>
+                  <label htmlFor="vendor-prod-stock">Stock *</label>
                   <input
+                    id="vendor-prod-stock"
                     type="number"
                     min="0"
                     value={productForm.stock}
@@ -371,17 +394,163 @@ const VendorDashboard = () => {
                     required
                   />
                 </div>
+
+                <div className="form-group">
+                  <label htmlFor="vendor-prod-sku">SKU (Optional)</label>
+                  <input
+                    id="vendor-prod-sku"
+                    type="text"
+                    value={productForm.sku || ''}
+                    onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                    placeholder="e.g., PROD-001"
+                  />
+                </div>
               </div>
 
               <div className="form-group">
-                <label>Category *</label>
-                <input
-                  type="text"
-                  value={productForm.category}
+                <label htmlFor="vendor-prod-category">Category *</label>
+                <select
+                  id="vendor-prod-category"
+                  value={productForm.category || 'Clothing'}
                   onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
                   required
-                  placeholder="e.g., Electronics"
-                />
+                >
+                  {[
+                    'Clothing',
+                    'Electronics',
+                    'Home Decor',
+                    'Jewellery',
+                    'Art & Crafts',
+                    'Beauty Products',
+                    'Footwear',
+                    'Books',
+                    'Toys & Games',
+                    'Kitchenware',
+                    'Handmade Items',
+                    'Accessories',
+                    'Bags',
+                    'Stationery',
+                    'Gadgets',
+                    'DIY Supplies'
+                  ].map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group variants-editor-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontWeight: 'bold' }}>Product Variants (Optional)</label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    onClick={() => {
+                      const newVariants = [
+                        ...(productForm.variants || []),
+                        { name: '', sku: '', price: productForm.price || '', stock: 0, isActive: true }
+                      ];
+                      setProductForm({ ...productForm, variants: newVariants });
+                    }}
+                  >
+                    + Add Variant
+                  </button>
+                </div>
+                <p className="muted small" style={{ marginBottom: '10px' }}>
+                  Add options like size, color, or model. When variants are present, customers select their preferred option and cart/orders record variant details.
+                </p>
+                {productForm.variants && productForm.variants.length > 0 && (
+                  <div className="variants-editor-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {productForm.variants.map((variant, idx) => (
+                      <div
+                        key={idx}
+                        className="variant-row"
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          background: '#f9f9f9',
+                          padding: '8px',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Option Name (e.g. Blue Switch, XL)"
+                          value={variant.name}
+                          onChange={(e) => {
+                            const updated = [...productForm.variants];
+                            updated[idx].name = e.target.value;
+                            setProductForm({ ...productForm, variants: updated });
+                          }}
+                          style={{ flex: 2, padding: '6px 8px' }}
+                          required
+                        />
+                        <input
+                          type="text"
+                          placeholder="SKU"
+                          value={variant.sku}
+                          onChange={(e) => {
+                            const updated = [...productForm.variants];
+                            updated[idx].sku = e.target.value;
+                            setProductForm({ ...productForm, variants: updated });
+                          }}
+                          style={{ flex: 1.5, padding: '6px 8px' }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          min="0"
+                          step="any"
+                          value={variant.price}
+                          onChange={(e) => {
+                            const updated = [...productForm.variants];
+                            updated[idx].price = e.target.value;
+                            setProductForm({ ...productForm, variants: updated });
+                          }}
+                          style={{ width: '80px', padding: '6px 8px' }}
+                          title="Variant Price"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Stock"
+                          min="0"
+                          value={variant.stock}
+                          onChange={(e) => {
+                            const updated = [...productForm.variants];
+                            updated[idx].stock = e.target.value;
+                            setProductForm({ ...productForm, variants: updated });
+                          }}
+                          style={{ width: '70px', padding: '6px 8px' }}
+                          title="Variant Stock"
+                        />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                          <input
+                            type="checkbox"
+                            checked={variant.isActive !== false}
+                            onChange={(e) => {
+                              const updated = [...productForm.variants];
+                              updated[idx].isActive = e.target.checked;
+                              setProductForm({ ...productForm, variants: updated });
+                            }}
+                          />
+                          Active
+                        </label>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-small"
+                          onClick={() => {
+                            const updated = productForm.variants.filter((_, i) => i !== idx);
+                            setProductForm({ ...productForm, variants: updated });
+                          }}
+                          style={{ padding: '4px 8px' }}
+                          title="Remove Variant"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -470,11 +639,12 @@ const VendorDashboard = () => {
                         src={product.imageUrl || 'https://via.placeholder.com/200'}
                         alt={product.title}
                         className="product-image"
+                        loading="lazy"
                       />
                       <div className="product-info">
                         <h3>{product.title}</h3>
                         <p>₹{product.price.toFixed(2)}</p>
-                        <p>Stock: {product.stock}</p>
+                        <p>Stock: {product.stock}{product.sku ? ` | SKU: ${product.sku}` : ''}</p>
                         <div className="product-actions">
                           <button
                             onClick={() => handleEditProduct(product)}
@@ -513,14 +683,17 @@ const VendorDashboard = () => {
                           <p><strong>Your Earning:</strong> ₹{order.vendorEarning?.toFixed(2) || '0.00'}</p>
                         </div>
                         <div className="order-status-controls">
-                          <label>Status:</label>
+                          <label htmlFor={`order-status-select-${order._id}`}>Status:</label>
                           <select
+                            id={`order-status-select-${order._id}`}
                             value={order.status || 'pending'}
                             onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
                             className="status-select"
+                            aria-label={`Update order #${order._id.slice(-8)} status`}
                           >
                             <option value="pending">Pending</option>
                             <option value="confirmed">Confirmed</option>
+                            <option value="processing">Processing</option>
                             <option value="shipped">Shipped</option>
                             <option value="delivered">Delivered</option>
                             <option value="cancelled">Cancelled</option>
@@ -532,7 +705,7 @@ const VendorDashboard = () => {
                         {order.products && order.products.length > 0 ? (
                           order.products.map((item, index) => (
                             <div key={index} className="order-item-small">
-                              <span>{item.productId?.title || 'Product'}</span>
+                              <span>{item.productId?.title || 'Product'}{item.variantName ? ` (${item.variantName})` : ''}</span>
                               <span>Qty: {item.quantity}</span>
                               <span>₹{((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
                             </div>

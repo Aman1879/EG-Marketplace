@@ -210,6 +210,8 @@
 
 .table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
 }
 
 .data-table {
@@ -608,3 +610,368 @@
   }
 }
 
+
+/* ==============================================================
+   Phase 12: Admin Dashboard Tabs, Filters, and Financial Styling
+   ============================================================== */
+
+.stat-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.stat-gross::before {
+  background: linear-gradient(90deg, #3182ce 0%, #2b6cb0 100%) !important;
+}
+
+.stat-refunds::before {
+  background: linear-gradient(90deg, #e53e3e 0%, #c53030 100%) !important;
+}
+
+.stat-net::before {
+  background: linear-gradient(90deg, #38a169 0%, #2f855a 100%) !important;
+}
+
+.stat-vendor-earnings::before {
+  background: linear-gradient(90deg, #d69e2e 0%, #b7791f 100%) !important;
+}
+
+/* Order Status Distribution Strip */
+.status-distribution-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 14px 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.dist-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-right: 5px;
+}
+
+.dist-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.chip-pending { background: #feebc8; color: #7b341e; }
+.chip-confirmed { background: #bee3f8; color: #2c5282; }
+.chip-processing { background: #e9d8fd; color: #553c9e; }
+.chip-shipped { background: #c3dafe; color: #3c366b; }
+.chip-delivered { background: #c6f6d5; color: #22543d; }
+.chip-cancelled { background: #fed7d7; color: #742a2a; }
+.chip-refunded { background: #e2e8f0; color: #4a5568; }
+
+/* Admin Navigation Tabs */
+.admin-nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.admin-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #edf2f7;
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-tab-btn:hover {
+  background: #e2e8f0;
+  color: #2d3748;
+}
+
+.admin-tab-btn.active {
+  background: #3182ce;
+  color: white;
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+}
+
+.tab-badge {
+  background: #e53e3e;
+  color: white;
+  font-size: 0.75rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+/* Order Filters Bar */
+.admin-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+  background: #f7fafc;
+  padding: 18px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4a5568;
+  text-transform: uppercase;
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  background: white;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Pagination Bar */
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination-info {
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-weight: 600;
+}
+
+/* Inventory Styles */
+.section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.threshold-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.threshold-selector select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e0;
+}
+
+.mini-stats {
+  margin-bottom: 25px;
+}
+
+.text-danger {
+  color: #e53e3e !important;
+}
+
+.text-warning {
+  color: #dd6b20 !important;
+}
+
+.out-of-stock-row {
+  background-color: #fff5f5 !important;
+}
+
+.low-stock-row {
+  background-color: #fffaf0 !important;
+}
+
+.badge-critical {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+.badge-warning {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #feebc8;
+  color: #7b341e;
+}
+
+.subsection-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 20px 0 12px 0;
+}
+
+/* User & Vendor Management */
+.user-filter-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.user-filter-controls select,
+.user-filter-controls input {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e0;
+  font-size: 0.88rem;
+}
+
+.role-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.role-admin { background: #feebc8; color: #744210; }
+.role-vendor { background: #e9d8fd; color: #44337a; }
+.role-buyer { background: #e2e8f0; color: #2d3748; }
+
+.role-select {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e0;
+  font-size: 0.85rem;
+}
+
+/* Reconciliation Card */
+.reconciliation-card {
+  margin-top: 30px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.reconciliation-card h3 {
+  font-size: 1.1rem;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.reconciliation-card p {
+  font-size: 0.9rem;
+  color: #718096;
+  margin-bottom: 15px;
+}
+
+.recon-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.recon-status {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.recon-ok {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.recon-warn {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+/* Payment Status Badges */
+.status-pay-paid { background: #c6f6d5; color: #22543d; }
+.status-pay-refunded { background: #e2e8f0; color: #4a5568; }
+.status-pay-failed { background: #fed7d7; color: #742a2a; }
+.status-pay-created { background: #feebc8; color: #744210; }
+.status-pay-authorized { background: #bee3f8; color: #2c5282; }
+
+/* Modal List */
+.modal-item-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.modal-item-list li {
+  padding: 8px 12px;
+  border-bottom: 1px solid #edf2f7;
+  font-size: 0.92rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #3182ce;
+  color: #3182ce;
+}
+
+.btn-outline:hover {
+  background: #3182ce;
+  color: white;
+}
+
+/* Phase 13: Audit Trail Styling */
+.audit-json {
+  background: #1a202c;
+  color: #a0aec0;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  overflow-x: auto;
+  max-height: 200px;
+  margin: 6px 0 14px 0;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+}

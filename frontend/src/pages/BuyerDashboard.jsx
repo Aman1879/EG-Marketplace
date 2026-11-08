@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import ProductCard from '../components/ProductCard';
 import './BuyerDashboard.css';
 
@@ -44,7 +45,7 @@ const BuyerDashboard = () => {
 
   const fetchShops = async (category) => {
     try {
-      const res = await axios.get('http://localhost:/api/vendors/shops', {
+      const res = await axios.get(`${API_BASE_URL}/api/vendors/shops`, {
         params: { category }
       });
       setShops(res.data || []);
@@ -55,10 +56,11 @@ const BuyerDashboard = () => {
 
   const fetchProducts = async (category) => {
     try {
-      const res = await axios.get('http://localhost:/api/products', {
+      const res = await axios.get(`${API_BASE_URL}/api/products`, {
         params: { category }
       });
-      setProducts(res.data || []);
+      const items = Array.isArray(res.data) ? res.data : (res.data?.products || []);
+      setProducts(items);
     } catch (error) {
       console.error('Error fetching products', error);
     }
@@ -97,14 +99,15 @@ const BuyerDashboard = () => {
             <div className="hero-main">
               <h1 className="hero-title">Discover Unique & Handmade Products</h1>
               <p className="hero-subtitle">Beautiful items crafted by local creators across India</p>
-              <div className="hero-search">
+              <div className="hero-search" role="search">
                 <input
                   type="text"
                   placeholder="Search for products, shops or categories..."
+                  aria-label="Search for products, shops or categories"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <button className="btn btn-primary" onClick={() => { /* filtering happens via input */ }}>
+                <button className="btn btn-primary" aria-label="Search" onClick={() => { /* filtering happens via input */ }}>
                   Search
                 </button>
               </div>
@@ -122,12 +125,13 @@ const BuyerDashboard = () => {
           </div>
           <p className="muted">{CATEGORY_OPTIONS.length} categories curated for you</p>
         </div>
-        <div className="category-grid">
+        <div className="category-grid" role="group" aria-label="Product categories">
           {CATEGORY_OPTIONS.map(cat => (
             <button
               key={cat}
               className={`category-card ${selectedCategory === cat ? 'active' : ''}`}
               onClick={() => setSelectedCategory(cat)}
+              aria-pressed={selectedCategory === cat}
             >
               <div className="category-card-title">{cat}</div>
               <p className="category-card-subtitle">Explore {cat} picks</p>
@@ -147,10 +151,23 @@ const BuyerDashboard = () => {
         {shops.length ? (
           <div className="shops-grid">
             {shops.map(shop => (
-              <div key={shop._id} className="shop-card" onClick={() => navigate(`/shops/${shop._id}`)}>
+              <div
+                key={shop._id}
+                className="shop-card"
+                role="button"
+                tabIndex={0}
+                aria-label={`Visit ${shop.shopName}`}
+                onClick={() => navigate(`/shops/${shop._id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/shops/${shop._id}`);
+                  }
+                }}
+              >
                 <div className="shop-banner">
                   {shop.bannerUrl ? (
-                    <img src={shop.bannerUrl} alt={shop.shopName} />
+                    <img src={shop.bannerUrl} alt={shop.shopName} loading="lazy" />
                   ) : (
                     <div className="banner-placeholder"></div>
                   )}
@@ -158,7 +175,7 @@ const BuyerDashboard = () => {
                 <div className="shop-body">
                   <div className="shop-logo">
                     {shop.logoUrl ? (
-                      <img src={shop.logoUrl} alt={shop.shopName} />
+                      <img src={shop.logoUrl} alt={shop.shopName} loading="lazy" />
                     ) : (
                       <div className="logo-placeholder">{shop.shopName?.charAt(0) || 'S'}</div>
                     )}

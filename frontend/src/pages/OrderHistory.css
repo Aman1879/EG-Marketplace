@@ -60,6 +60,26 @@
   color: #0f5132;
 }
 
+.status-processing {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-refunded {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+}
+
+.status-default {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
 .order-items {
   display: flex;
   flex-direction: column;
@@ -127,6 +147,27 @@
     flex-direction: column;
     gap: 15px;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .order-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .order-item {
+    gap: 12px;
+  }
+
+  .order-item-image {
+    width: 60px;
+    height: 60px;
+  }
+
+  .order-shipping {
+    text-align: left;
   }
 }
 

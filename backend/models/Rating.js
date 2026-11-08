@@ -34,6 +34,7 @@ const ratingSchema = new mongoose.Schema({
 
 // Ensure one rating per buyer per product
 ratingSchema.index({ productId: 1, buyerId: 1 }, { unique: true });
+ratingSchema.index({ productId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Rating', ratingSchema);
 

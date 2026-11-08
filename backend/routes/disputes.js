@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Dispute = require('../models/Dispute');
 const Order = require('../models/Order');
@@ -20,6 +21,10 @@ router.post('/', authenticate, authorize('buyer'), [
     }
 
     const { orderId, reason, description, images = [] } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: 'Invalid order ID format' });
+    }
 
     // Verify order belongs to buyer
     const order = await Order.findById(orderId).populate('vendorId');
@@ -111,6 +116,10 @@ router.put('/:id/reply', authenticate, authorize('vendor'), [
       return res.status(400).json({ errors: errors.array() });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid dispute ID format' });
+    }
+
     // Find ALL shops for this vendor user
     const vendors = await Vendor.find({ userId: req.user._id });
     if (!vendors || vendors.length === 0) {
@@ -153,6 +162,10 @@ router.put('/:id/status', authenticate, authorize('admin'), [
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid dispute ID format' });
     }
 
     const dispute = await Dispute.findById(req.params.id);

@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Vendor = require('../models/Vendor');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const { authenticate, authorize } = require('../middleware/auth');
 const { razorpay, hasRazorpayCredentials } = require('../config/razorpay');
+const { recordAuditLog } = require('../utils/auditLogger');
 
 // Get current vendor profile (latest)
 router.get('/me', authenticate, authorize('vendor'), async (req, res) => {
@@ -43,7 +45,7 @@ const validateUrlOrDataUrl = (value) => {
 };
 
 // Create new shop
-router.post('/create', authenticate, authorize('vendor'), [
+router.post(['/create', '/onboard'], authenticate, authorize('vendor'), [
   body('shopName')
     .exists().withMessage('Shop name is required')
     .trim()
@@ -102,18 +104,18 @@ router.post('/create', authenticate, authorize('vendor'), [
     console.log('Categories:', req.body.categories);
     console.log('Logo URL type:', typeof req.body.logoUrl, req.body.logoUrl ? (req.body.logoUrl.substring(0, 50) + '...') : 'empty');
     console.log('Banner URL type:', typeof req.body.bannerUrl, req.body.bannerUrl ? (req.body.bannerUrl.substring(0, 50) + '...') : 'empty');
-    
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.error('Validation errors:', errors.array());
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Validation failed',
-        errors: errors.array() 
+        errors: errors.array()
       });
     }
 
     const { shopName, description, category, categories, country, logoUrl, bannerUrl, address, contactEmail, contactPhone, gstin } = req.body;
-    
+
     // Normalize categories
     let normalizedCategories = [];
     if (Array.isArray(categories) && categories.length > 0) {
@@ -145,19 +147,32 @@ router.post('/create', authenticate, authorize('vendor'), [
     };
 
     console.log('Creating vendor with data:', { ...vendorData, logoUrl: vendorData.logoUrl?.substring(0, 50) + '...', bannerUrl: vendorData.bannerUrl?.substring(0, 50) + '...' });
-    
+
     // Check if vendor already has a shop with this name
-    const existingShop = await Vendor.findOne({ 
-      userId: vendorData.userId, 
-      shopName: vendorData.shopName 
+    const existingShop = await Vendor.findOne({
+      userId: vendorData.userId,
+      shopName: vendorData.shopName
     });
-    
+
     let vendor;
     if (existingShop) {
       // Update existing shop with same name
+      const beforeShop = { shopName: existingShop.shopName, address: existingShop.address };
       Object.assign(existingShop, vendorData);
       vendor = await existingShop.save();
       console.log('Vendor shop updated:', vendor._id);
+
+      await recordAuditLog({
+        actorId: req.user._id,
+        actorRole: req.user.role,
+        action: 'vendor.update',
+        resourceType: 'Vendor',
+        resourceId: vendor._id.toString(),
+        before: beforeShop,
+        after: { shopName: vendor.shopName, address: vendor.address },
+        metadata: { shopName: vendor.shopName }
+      });
+
       res.json({
         message: 'Vendor shop updated',
         vendor
@@ -168,19 +183,34 @@ router.post('/create', authenticate, authorize('vendor'), [
       await vendor.save();
       console.log('Vendor created successfully:', vendor._id);
 
-        if (global.orderEventEmitter) {
-          global.orderEventEmitter.emit('vendorRequestSubmitted', {
-            vendorId: vendor._id.toString(),
-            userId: req.user._id.toString(),
-            shopName: vendor.shopName,
-            gstin: vendor.gstin,
-            approvalStatus: vendor.approvalStatus,
-            createdAt: vendor.createdAt
-          });
-        }
+      await recordAuditLog({
+        actorId: req.user._id,
+        actorRole: req.user.role,
+        action: 'vendor.create',
+        resourceType: 'Vendor',
+        resourceId: vendor._id.toString(),
+        before: null,
+        after: {
+          shopName: vendor.shopName,
+          approvalStatus: vendor.approvalStatus,
+          gstin: vendor.gstin
+        },
+        metadata: { shopName: vendor.shopName }
+      });
+
+      if (global.orderEventEmitter) {
+        global.orderEventEmitter.emit('vendorRequestSubmitted', {
+          vendorId: vendor._id.toString(),
+          userId: req.user._id.toString(),
+          shopName: vendor.shopName,
+          gstin: vendor.gstin,
+          approvalStatus: vendor.approvalStatus,
+          createdAt: vendor.createdAt
+        });
+      }
 
       res.json({
-          message: 'Vendor shop submitted for admin approval',
+        message: 'Vendor shop submitted for admin approval',
         vendor
       });
     }
@@ -192,7 +222,7 @@ router.post('/create', authenticate, authorize('vendor'), [
       stack: error.stack,
       errors: error.errors
     });
-    
+
     // Handle MongoDB duplicate key error
     if (error.code === 11000) {
       // Try to find and update existing shop
@@ -204,7 +234,7 @@ router.post('/create', authenticate, authorize('vendor'), [
         } else if (category && String(category).trim()) {
           normalizedCategories = [String(category).trim()];
         }
-        
+
         const existingShop = await Vendor.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
         if (existingShop) {
           Object.assign(existingShop, {
@@ -235,27 +265,27 @@ router.post('/create', authenticate, authorize('vendor'), [
       } catch (updateError) {
         console.error('Error updating existing shop:', updateError);
       }
-      
-      return res.status(400).json({ 
+
+      return res.status(400).json({
         message: 'A shop already exists for this user. Please update your existing shop or create a shop with a different name.',
         error: 'Duplicate shop'
       });
     }
-    
+
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => ({
         field: err.path,
         message: err.message
       }));
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Validation error',
         errors: validationErrors
       });
     }
-    
-    res.status(500).json({ 
-      message: 'Server error', 
+
+    res.status(500).json({
+      message: 'Server error',
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
@@ -281,7 +311,7 @@ router.post('/profile', authenticate, authorize('vendor'), [
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }).withMessage('Contact email must be valid'),
   body('contactPhone').optional({ checkFalsy: true }).trim().isLength({ max: 30 })
-  ,body('gstin')
+  , body('gstin')
     .exists().withMessage('GSTIN is required')
     .trim()
     .matches(/^[0-9A-Z]{15}$/).withMessage('GSTIN must be 15 alphanumeric characters')
@@ -313,6 +343,13 @@ router.post('/profile', authenticate, authorize('vendor'), [
       }
     }
 
+    const beforeState = {
+      shopName: vendor.shopName,
+      description: vendor.description,
+      address: vendor.address,
+      contactPhone: vendor.contactPhone
+    };
+
     vendor.shopName = shopName;
     vendor.description = description || vendor.description;
     vendor.category = category || vendor.category || '';
@@ -335,6 +372,22 @@ router.post('/profile', authenticate, authorize('vendor'), [
     }
 
     await vendor.save();
+
+    await recordAuditLog({
+      actorId: req.user._id,
+      actorRole: req.user.role,
+      action: 'vendor.update',
+      resourceType: 'Vendor',
+      resourceId: vendor._id.toString(),
+      before: beforeState,
+      after: {
+        shopName: vendor.shopName,
+        description: vendor.description,
+        address: vendor.address,
+        contactPhone: vendor.contactPhone
+      },
+      metadata: { shopName: vendor.shopName }
+    });
 
     res.json({
       message: 'Vendor shop updated',
@@ -392,9 +445,17 @@ async function createLinkedAccountForVendor(vendor, bankDetails) {
 // Create linked account for a shop (Razorpay Route)
 router.post('/:id/razorpay/linked-account', authenticate, authorize('vendor'), async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid shop ID format' });
+    }
+
+    const vendor = await Vendor.findById(req.params.id);
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor shop not found' });
+    }
+
+    if (vendor.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied: You do not own this vendor shop' });
     }
 
     if (vendor.razorpayAccountId) {
@@ -443,10 +504,24 @@ router.post('/:id/razorpay/linked-account', authenticate, authorize('vendor'), a
 // Update payout settings for a specific shop
 router.put('/:id/payout-settings', authenticate, authorize('vendor'), async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid shop ID format' });
+    }
+
+    const vendor = await Vendor.findById(req.params.id);
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor shop not found' });
     }
+
+    if (vendor.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied: You do not own this vendor shop' });
+    }
+
+    const beforePayoutState = {
+      upiId: vendor.upiId,
+      payoutDetails: vendor.payoutDetails,
+      razorpayAccountId: vendor.razorpayAccountId
+    };
 
     const {
       upiId,
@@ -488,6 +563,21 @@ router.put('/:id/payout-settings', authenticate, authorize('vendor'), async (req
 
     await vendor.save();
 
+    await recordAuditLog({
+      actorId: req.user._id,
+      actorRole: req.user.role,
+      action: 'vendor.payout_update',
+      resourceType: 'Vendor',
+      resourceId: vendor._id.toString(),
+      before: beforePayoutState,
+      after: {
+        upiId: vendor.upiId,
+        payoutDetails: vendor.payoutDetails,
+        razorpayAccountId: vendor.razorpayAccountId
+      },
+      metadata: { shopName: vendor.shopName }
+    });
+
     res.json({
       message: 'Payout settings updated',
       vendor: {
@@ -508,9 +598,17 @@ router.put('/:id/payout-settings', authenticate, authorize('vendor'), async (req
 // Get payout settings for selected shop
 router.get('/:id/payout-settings', authenticate, authorize('vendor'), async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid shop ID format' });
+    }
+
+    const vendor = await Vendor.findById(req.params.id);
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor shop not found' });
+    }
+
+    if (vendor.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied: You do not own this vendor shop' });
     }
 
     const paidOrdersCount = await Order.countDocuments({ vendorId: vendor._id, paymentStatus: 'paid' });
@@ -520,10 +618,14 @@ router.get('/:id/payout-settings', authenticate, authorize('vendor'), async (req
         $group: {
           _id: null,
           totalOrderVolume: { $sum: '$totalAmount' },
-          totalCommissionPaid: { $sum: '$adminCommission' }
+          totalCommissionPaid: { $sum: '$adminCommission' },
+          totalVendorEarnings: { $sum: '$vendorEarning' }
         }
       }
     ]);
+
+    const aggregateEarnings = totals?.[0]?.totalVendorEarnings || 0;
+    const totalEarnings = vendor.totalEarnings || aggregateEarnings;
 
     res.json({
       _id: vendor._id,
@@ -533,7 +635,7 @@ router.get('/:id/payout-settings', authenticate, authorize('vendor'), async (req
       razorpayAccountId: vendor.razorpayAccountId,
       razorpayAccountStatus: vendor.razorpayAccountStatus,
       kycStatus: vendor.kycStatus,
-      totalEarnings: vendor.totalEarnings || 0,
+      totalEarnings,
       totalPaidEarnings: vendor.totalPaidEarnings || 0,
       paidOrdersCount,
       totalOrderVolume: totals?.[0]?.totalOrderVolume || 0,
@@ -554,15 +656,25 @@ router.get('/my/earnings-summary', authenticate, authorize('vendor'), async (req
         const paidOrdersCount = await Order.countDocuments({ vendorId: shop._id, paymentStatus: 'paid' });
         const totalOrderVolume = await Order.aggregate([
           { $match: { vendorId: shop._id, paymentStatus: 'paid' } },
-          { $group: { _id: null, amount: { $sum: '$totalAmount' }, commission: { $sum: '$adminCommission' } } }
+          {
+            $group: {
+              _id: null,
+              amount: { $sum: '$totalAmount' },
+              commission: { $sum: '$adminCommission' },
+              earnings: { $sum: '$vendorEarning' }
+            }
+          }
         ]);
+
+        const computedEarnings = totalOrderVolume?.[0]?.earnings || 0;
+        const totalEarnings = shop.totalEarnings || computedEarnings;
 
         return {
           vendorId: shop._id,
           shopName: shop.shopName,
           paidOrdersCount,
           totalPaidEarnings: shop.totalPaidEarnings || 0,
-          totalEarnings: shop.totalEarnings || 0,
+          totalEarnings,
           totalOrderVolume: totalOrderVolume?.[0]?.amount || 0,
           totalCommissionPaid: totalOrderVolume?.[0]?.commission || 0,
           razorpayAccountStatus: shop.razorpayAccountStatus,
@@ -599,6 +711,10 @@ router.get('/shops', async (req, res) => {
 // Public: get a shop and its products
 router.get('/:id/public', async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid shop ID format' });
+    }
+
     const vendor = await Vendor.findById(req.params.id)
       .select('shopName description logoUrl bannerUrl categories category country contactEmail contactPhone averageRating totalRatings onboardingComplete');
     if (!vendor || !vendor.onboardingComplete) {

@@ -30,8 +30,15 @@ const OrderHistory = () => {
         return 'status-shipped';
       case 'Pending':
         return 'status-pending';
+      case 'Processing':
+      case 'Confirmed':
+        return 'status-processing';
+      case 'Cancelled':
+        return 'status-cancelled';
+      case 'Refunded':
+        return 'status-refunded';
       default:
-        return '';
+        return 'status-default';
     }
   };
 
@@ -67,11 +74,20 @@ const OrderHistory = () => {
                     <div key={index} className="order-item">
                       <img
                         src={item.productId?.imageUrl || 'https://via.placeholder.com/80'}
-                        alt={item.productId?.title}
+                        alt={item.productId?.title || 'Product'}
                         className="order-item-image"
+                        loading="lazy"
                       />
                       <div className="order-item-info">
-                        <h4>{item.productId?.title || 'Product'}</h4>
+                        <h4>
+                          {item.productId?.title || 'Product'}
+                          {item.variantName && (
+                            <span style={{ fontSize: '13px', color: '#666', fontWeight: 'normal', marginLeft: '6px' }}>
+                              ({item.variantName})
+                            </span>
+                          )}
+                        </h4>
+                        {item.variantSku && <p style={{ fontSize: '12px', color: '#888' }}>SKU: {item.variantSku}</p>}
                         <p>Quantity: {item.quantity}</p>
                         <p>Price: ₹{item.price.toFixed(2)}</p>
                       </div>

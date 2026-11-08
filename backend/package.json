@@ -5,7 +5,24 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "db:index": "node scripts/sync-indexes.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed.js",
+    "db:setup": "node scripts/migrate.js && node scripts/sync-indexes.js && node scripts/seed.js",
+    "test:phase14": "node scripts/test-phase14-database-setup.js",
+    "test:phase15": "node scripts/test-phase15-api-validation.js",
+    "test:phase16": "node scripts/test-phase16-assignment-coverage.js",
+    "test:phase19": "node scripts/test-phase19-deployment.js",
+    "test:security": "node scripts/test-socket-security.js",
+    "test:inventory": "node scripts/test-inventory.js",
+    "test:concurrency": "node scripts/test-concurrency-recovery.js",
+    "test:crash": "node scripts/test-crash-windows.js",
+    "test:durable": "node scripts/test-durable-fencing.js",
+    "test:hard-fencing": "node scripts/test-hard-fencing-recovery.js",
+    "test:ownership": "node scripts/test-ledger-ownership.js",
+    "test:transactions": "node scripts/test-transaction-safety.js",
+    "test": "node scripts/test-socket-security.js && node scripts/test-inventory.js && node scripts/test-concurrency-recovery.js && node scripts/test-crash-windows.js && node scripts/test-durable-fencing.js && node scripts/test-hard-fencing-recovery.js && node scripts/test-ledger-ownership.js && node scripts/test-transaction-safety.js"
   },
   "keywords": [
     "marketplace",
@@ -14,6 +31,10 @@
   ],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
